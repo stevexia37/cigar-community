@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>雪茄客 · 法律声明与年龄验证</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1a1410; font-family:'Inter','system-ui',sans-serif; color:#e8dcc8; line-height:1.8; padding:20px; }
+.container { max-width:800px; margin:0 auto; }
+h1 { font-family:'Playfair Display',Georgia,serif; color:#c9a84c; font-size:1.6rem; border-bottom:1px solid #3d3428; padding-bottom:0.6rem; margin-bottom:1.2rem; }
+h2 { font-size:1.15rem; color:#c9a84c; margin:1.5rem 0 0.6rem; }
+h3 { font-size:1rem; color:#e8dcc8; margin:1rem 0 0.4rem; }
+p { margin-bottom:0.8rem; text-align:justify; }
+ul { margin:0.5rem 0 1rem 1.2rem; }
+li { margin-bottom:0.4rem; }
+.tag { display:inline-block; background:#2a2218; border:1px solid #3d3428; border-radius:4px; padding:0.1rem 0.6rem; font-size:0.78rem; color:#a09080; margin:0.1rem; }
+hr { border:none; border-top:1px solid #3d3428; margin:1.5rem 0; }
+.warning { background:rgba(201,168,76,0.08); border-left:3px solid #c9a84c; border-radius:0 8px 8px 0; padding:0.8rem 1rem; margin:1rem 0; }
+.legal-code { background:#2a2218; border-radius:8px; padding:1rem; font-size:0.9rem; border:1px solid #3d3428; margin:0.8rem 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<span class="tag">法律合规</span>
+<span class="tag">Age Gate</span>
+<span class="tag">免责声明</span>
+
+<h1>网站法律免责声明<br><span style="font-size:0.6em;font-weight:400;color:#a09080;font-family:'Inter',sans-serif;">— 雪茄客 CigarAficionado.cn —</span></h1>
+
+<!-- ================================================================
+     第一部分：Age Gate 弹窗 HTML 模板
+     ================================================================ -->
+<h2>一、年龄验证弹窗（Age Gate）UI 模板</h2>
+<p style="color:#a09080;font-size:0.9rem;">以下为弹窗 HTML 代码段，可直接嵌入到网站首页 <code>&lt;body&gt;</code> 头部，或在 CMS 的全局 footer 中触发。</p>
+
+<div class="legal-code">
+<pre style="font-family:'Consolas','Courier New',monospace;font-size:0.82rem;color:#c9a84c;white-space:pre-wrap;word-break:break-all;">
+&lt;!-- ====== Age Gate Modal ====== --&gt;
+&lt;div id="ageGateOverlay" style="
+  position:fixed;inset:0;z-index:999999;
+  background:rgba(10,6,4,0.92);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Inter','system-ui',sans-serif;
+"&gt;
+  &lt;div style="
+    max-width:380px;width:90%;background:#2a2218;
+    border:1px solid #4a3f30;border-radius:20px;
+    padding:2rem 1.6rem;text-align:center;
+    box-shadow:0 24px 80px rgba(0,0,0,0.6);
+  "&gt;
+    &lt;!-- Logo / icon --&gt;
+    &lt;div style="font-size:2.4rem;margin-bottom:0.5rem;"&gt;🚬&lt;/div&gt;
+    &lt;h2 style="
+      font-family:'Playfair Display',Georgia,serif;
+      color:#c9a84c;font-size:1.3rem;
+      margin-bottom:0.3rem;
+    "&gt;欢迎来到雪茄客&lt;/h2&gt;
+    &lt;p style="color:#a09080;font-size:0.85rem;margin-bottom:1.2rem;"&gt;
+      本站内容仅供成年人参考与交流
+    &lt;/p&gt;
+
+    &lt;!-- 法定警示 --&gt;
+    &lt;p style="
+      background:#1a1410;border-radius:10px;
+      padding:0.6rem;margin-bottom:1rem;
+      font-size:0.75rem;color:#e57373;
+      border:1px solid #3d3428;
+    "&gt;
+      ⚠ 吸烟有害健康 · 未成年人禁止吸烟 · 禁止向未成年人出售烟草制品
+    &lt;/p&gt;
+
+    &lt;!-- 年龄确认 --&gt;
+    &lt;p style="color:#e8dcc8;font-size:0.9rem;margin-bottom:1.2rem;"&gt;
+      请确认您已满
+      &lt;strong style="color:#c9a84c;"&gt;18 周岁&lt;/strong&gt;
+      （中国大陆法定吸烟年龄）
+    &lt;/p&gt;
+
+    &lt;!-- 按钮 --&gt;
+    &lt;div style="display:flex;flex-direction:column;gap:0.6rem;"&gt;
+      &lt;button onclick="document.getElementById('ageGateOverlay').style.display='none';"
+        style="
+          width:100%;padding:0.75rem;border:none;border-radius:12px;
+          background:#c9a84c;color:#1a1410;
+          font-size:0.95rem;font-weight:600;
+          cursor:pointer;transition:opacity 0.2s;
+        "
+        onmouseover="this.style.opacity='0.85'"
+        onmouseout="this.style.opacity='1'"
+      &gt;我已满 18 岁，进入网站&lt;/button&gt;
+
+      &lt;a href="https://www.baidu.com/s?wd=%E6%8A%BD%E7%83%9F%E6%9C%89%E5%AE%B3%E5%81%A5%E5%BA%B7"
+        style="
+          display:block;width:100%;padding:0.75rem;border-radius:12px;
+          background:transparent;color:#a09080;
+          border:1px solid #4a3f30;
+          text-decoration:none;font-size:0.9rem;
+          transition:all 0.2s;
+        "
+        onmouseover="this.style.color='#e8dcc8';this.style.borderColor='#8b5e3c'"
+        onmouseout="this.style.color='#a09080';this.style.borderColor='#4a3f30'"
+      &gt;我未满 18 岁，离开&lt;/a&gt;
+    &lt;/div&gt;
+
+    &lt;p style="color:#6b5b4b;font-size:0.7rem;margin-top:1rem;"&gt;
+      点击进入即表示您同意我们的 &lt;a href="/disclaimer" style="color:#8b5e3c;"&gt;免责声明&lt;/a&gt;
+    &lt;/p&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+</pre>
+</div>
+
+<div class="warning">
+<strong>部署说明：</strong> Age Gate 弹窗建议配置为「单次会话弹出一次」（Session Storage 标记），屏蔽爬虫（在弹窗容器加 <code>style="display:none"</code> 并用 JS 检测是否为真实用户后再显示）。百度等搜索引擎不会索引弹窗内容。
+</div>
+
+<hr>
+
+<!-- ================================================================
+     第二部分：网站免责声明
+     ================================================================ -->
+<h2>二、网站免责声明（Disclaimer）</h2>
+<p style="color:#a09080;font-size:0.9rem;">以下条款适用于 雪茄客（CigarAficionado.cn）所有页面及子域名。用户访问或使用本站即视为已阅读、理解并同意受本声明约束。</p>
+
+<h3>1. 平台性质声明</h3>
+<p><strong>雪茄客（CigarAficionado.cn）</strong> 是一个纯文化、历史与爱好者养护技术交流的垂直内容平台。本站：</p>
+<ul>
+  <li><strong>不提供</strong>任何烟草制品的在线销售、购买链接跳转或交易撮合；</li>
+  <li><strong>不参与、不协助、不暗示</strong>任何形式的烟草代购、跨境邮递、灰色清关或走私活动；</li>
+  <li><strong>不发布</strong>任何烟草品牌的价格比较或促销信息；</li>
+  <li><strong>不接受</strong>任何烟草制品的广告投放或商业推广合作。</li>
+</ul>
+<p>本站所有提及的品牌名称、型号及价格均为用户自行编辑提交的内容，仅用于知识交流与养护讨论，不构成任何购买建议或交易要约。</p>
+
+<h3>2. 吸烟与健康警示</h3>
+<div class="warning">
+<p style="font-weight:600;margin-bottom:0.3rem;">⚠️ 法定警示语</p>
+<p>吸烟有害健康。烟草烟雾中含有数千种化学物质，其中至少 69 种已知可导致癌症。<strong>戒烟可减少对健康的危害。</strong> 孕妇吸烟可能导致胎儿发育受损。未成年人严禁吸烟。请勿在禁烟场所吸烟。</p>
+<p style="margin-top:0.4rem;font-size:0.85rem;">中国大陆法定吸烟年龄为 18 周岁；部分国家及地区（如美国、日本）法定吸烟年龄为 21 周岁。用户应自行遵守所在地法律法规。</p>
+</div>
+
+<h3>3. 用户生成内容（UGC）免责</h3>
+<p>本站设有开放社区板块（包括但不限于品吸笔记、养护心得、闲置烟具配件交流等），用户在此类板块发表的言论、图片、数据及链接均属<strong>用户个人行为</strong>，与本站运营团队无关。</p>
+<p>用户应保证其上传的内容：</p>
+<ul>
+  <li>不违反任何适用法律法规；</li>
+  <li>不侵犯第三方知识产权、肖像权、名誉权；</li>
+  <li>不包含烟草制品的销售、代购、转让或交换信息；</li>
+  <li>不包含任何形式的烟草广告或促销。</li>
+</ul>
+<p>本站保留对违规内容进行<strong>不经通知即删除、屏蔽或封禁账号</strong>的权利。如发现任何违规帖子，欢迎通过 <code>legal@cigaraficionado.cn</code> 举报。</p>
+
+<h3>4. 第三方链接与广告</h3>
+<p>本站内容中可能包含第三方网站链接（如参照文献、品牌官网、养护设备制造商官网等）。这些链接仅为方便用户参考而提供，<strong>不代表本站对第三方内容、产品、服务的认可或担保</strong>。用户访问第三方链接所产生的任何争议或损失，本站不承担任何责任。</p>
+
+<h3>5. 知识产权</h3>
+<p>本站原创文章、图片、视频及结构化数据（包括但不限于雪茄数据库、风味轮、品吸评分体系）的知识产权归<strong>雪茄客（CigarAficionado.cn）</strong>所有。未经书面授权，禁止复制、转载、改编或用于商业用途。</p>
+<p>站内用户上传的内容，其知识产权归上传用户所有，但用户授予本站在全球范围内永久的、免版税的、非独占的展示与分发许可。</p>
+
+<h3>6. 年龄限制与访问权利</h3>
+<p>本站仅面向年满 18 周岁（部分司法管辖区为 21 周岁）的成年人开放。未达到法定年龄的个人不得访问本站。本站有权随时要求用户证明其年龄，并对拒绝配合或提供虚假信息的用户采取限制访问措施。</p>
+
+<h3>7. 免责声明更新</h3>
+<p>本站保留随时修改、更新本免责声明的权利。重大变更将在首页以公告形式发布。用户在变更后继续使用本站即视为接受更新后的条款。</p>
+
+<h3>8. 适用法律与争议解决</h3>
+<p>本声明的解释、适用及争议解决，适用中华人民共和国法律。因本声明引起的或与之有关的任何争议，双方应首先友好协商解决；协商不成的，提交有管辖权的中国法院诉讼解决。</p>
+
+<hr>
+
+<h2>三、合规要点摘要（供开发参考）</h2>
+<ul>
+  <li><strong>Age Gate：</strong>Session 级别弹出一次，屏蔽爬虫，不满足条件跳转百度搜索"吸烟有害健康"页面。</li>
+  <li><strong>Robots 控制：</strong>建议在 <code>/robots.txt</code> 中屏蔽用户 UGC 板块，避免第三方内容被搜索引擎收录后引发合规争议。</li>
+  <li><strong>ICP 备案：</strong>如使用国内服务器部署，必须在首页底部展示 <code>京ICP备XXXXXX号</code> 及公安备案号（如适用）。</li>
+  <li><strong>违法信息过滤：</strong>UGC 板块应接入敏感词过滤（微信/淘宝/代购/价格等关键词自动进入审核队列）。</li>
+  <li><strong>用户协议：</strong>建议在注册流程中增加《社区公约》勾选，明确禁止交易类内容。</li>
+</ul>
+
+<p style="color:#6b5b4b;font-size:0.8rem;margin-top:2rem;padding-top:1rem;border-top:1px solid #3d3428;">
+更新日期：2026 年 6 月 &nbsp;|&nbsp; 版本：v1.0 &nbsp;|&nbsp; 如有疑问请联系 legal@cigaraficionado.cn<br>
+<em>本文档由专业法务顾问编写，仅供参考。具体实施建议咨询执业律师。</em>
+</p>
+
+</div>
+</body>
+</html>

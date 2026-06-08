@@ -1,0 +1,165 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cigar Community Database Schema",
+  "description": "雪茄知识交流网站 · 结构化数据 Schema（JSON 版，兼容 Strapi / Headless CMS）",
+  "version": "1.0.0",
+  "collections": {
+    "cigar_countries": {
+      "tableName": "雪茄产地字典",
+      "description": "国家 / 产区字典表，规范化产地数据",
+      "attributes": {
+        "id":           { "type": "integer", "required": true, "description": "主键 ID" },
+        "name":         { "type": "string",  "maxLength": 100, "required": true, "description": "国家名称" },
+        "code":         { "type": "string",  "maxLength": 2,   "required": true, "description": "ISO 3166-1 二位字母代码" },
+        "is_cuban":     { "type": "boolean", "default": false, "description": "是否古巴产区" },
+        "created_at":   { "type": "string",  "format": "date-time" }
+      }
+    },
+    "cigar_brands": {
+      "tableName": "雪茄品牌表",
+      "description": "品牌信息表",
+      "attributes": {
+        "id":           { "type": "integer", "required": true },
+        "name":         { "type": "string",  "maxLength": 200, "required": true, "description": "品牌名称" },
+        "name_cn":      { "type": "string",  "maxLength": 200, "description": "中文译名" },
+        "description":  { "type": "string",  "description": "品牌简介" },
+        "country_id":   { "type": "integer", "description": "所属国家 ID，关联 cigar_countries" },
+        "logo_url":     { "type": "string",  "maxLength": 500, "description": "品牌 Logo" },
+        "status":       { "type": "boolean", "default": true, "description": "状态" },
+        "created_at":   { "type": "string",  "format": "date-time" },
+        "updated_at":   { "type": "string",  "format": "date-time" }
+      }
+    },
+    "cigar_flavors": {
+      "tableName": "风味标签字典",
+      "description": "核心风味标签字典，支持多语言",
+      "attributes": {
+        "id":           { "type": "integer", "required": true },
+        "name":         { "type": "string",  "maxLength": 100, "required": true, "description": "风味英文名称" },
+        "name_cn":      { "type": "string",  "maxLength": 100, "description": "风味中文名称" },
+        "category":     { "type": "string",  "maxLength": 50,  "description": "风味大类：woody/spicy/sweet/earthy/nutty/floral/fresh/toasty/smoky/complex" },
+        "sort_order":   { "type": "integer", "default": 0, "description": "排序权重" },
+        "created_at":   { "type": "string",  "format": "date-time" }
+      }
+    },
+    "cigar_products": {
+      "tableName": "雪茄产品主表",
+      "description": "核心雪茄产品表，包含基本信息、烟叶配方、量化评分、养护建议等",
+      "attributes": {
+        "id":                     { "type": "integer", "required": true },
+        "brand_id":               { "type": "integer", "required": true, "description": "品牌 ID" },
+        "series":                 { "type": "string",  "maxLength": 200, "description": "系列名称" },
+        "vitola":                 { "type": "string",  "maxLength": 200, "required": true, "description": "商业型号 / Vitola" },
+        "length_inch":            { "type": "number",  "description": "长度（英寸）" },
+        "length_mm":              { "type": "integer", "description": "长度（毫米）" },
+        "ring_gauge":             { "type": "integer", "description": "环径" },
+
+        "origin_type":            { "type": "string",  "enum": ["cuban","non-cuban"], "required": true, "description": "产地大类：古巴/非古" },
+        "country_id":             { "type": "integer", "required": true, "description": "生产国家 ID" },
+
+        "wrapper_origin":         { "type": "integer", "description": "茄衣产地 ID" },
+        "wrapper_variety":        { "type": "string",  "maxLength": 100, "description": "茄衣烟叶品种" },
+        "wrapper_color":          { "type": "string",  "maxLength": 50,  "description": "茄衣颜色" },
+        "binder_origin":          { "type": "integer", "description": "茄套产地 ID" },
+        "binder_variety":         { "type": "string",  "maxLength": 100, "description": "茄套烟叶品种" },
+        "filler_origin":          { "type": "integer", "description": "茄芯产地 ID" },
+        "filler_variety":         { "type": "string",  "maxLength": 200, "description": "茄芯烟叶品种" },
+
+        "strength":               { "type": "integer", "minimum": 1, "maximum": 5, "description": "浓郁度 1-5" },
+        "recommended_humidity":    { "type": "number",  "default": 70.0, "description": "建议养护湿度(%)" },
+        "recommended_temperature": { "type": "number",  "default": 18.0, "description": "建议养护温度(℃)" },
+
+        "flavors":                { "type": "array", "items": { "type": "integer" }, "description": "官方核心风味标签 ID 数组" },
+        "description":            { "type": "string",  "description": "雪茄简介" },
+        "image_url":              { "type": "string",  "maxLength": 500, "description": "主图" },
+        "status":                 { "type": "boolean", "default": true },
+        "created_at":             { "type": "string",  "format": "date-time" },
+        "updated_at":             { "type": "string",  "format": "date-time" }
+      }
+    },
+    "users": {
+      "tableName": "用户表",
+      "description": "社区用户基础信息",
+      "attributes": {
+        "id":             { "type": "integer", "required": true },
+        "username":       { "type": "string",  "maxLength": 100, "required": true },
+        "email":          { "type": "string",  "maxLength": 255, "format": "email" },
+        "password_hash":  { "type": "string",  "maxLength": 255, "required": true },
+        "avatar_url":     { "type": "string",  "maxLength": 500 },
+        "bio":            { "type": "string",  "maxLength": 500, "description": "个人简介/雪茄偏好" },
+        "role":           { "type": "string",  "enum": ["admin","editor","user"], "default": "user" },
+        "status":         { "type": "boolean", "default": true },
+        "last_login_at":  { "type": "string",  "format": "date-time" },
+        "created_at":     { "type": "string",  "format": "date-time" },
+        "updated_at":     { "type": "string",  "format": "date-time" }
+      }
+    },
+    "cigar_reviews": {
+      "tableName": "品吸笔记表",
+      "description": "用户品吸笔记，包含三段风味打分、燃烧/抽吸评价、图文内容",
+      "attributes": {
+        "id":                { "type": "integer", "required": true },
+        "user_id":           { "type": "integer", "required": true, "description": "用户 ID" },
+        "cigar_id":          { "type": "integer", "required": true, "description": "雪茄 ID" },
+
+        "pre_score":         { "type": "integer", "minimum": 1, "maximum": 10, "description": "前段风味 1-10" },
+        "mid_score":         { "type": "integer", "minimum": 1, "maximum": 10, "description": "中段风味 1-10" },
+        "post_score":        { "type": "integer", "minimum": 1, "maximum": 10, "description": "尾段风味 1-10" },
+
+        "burn_evenness":     { "type": "integer", "minimum": 1, "maximum": 10, "description": "斜烧度 1-10" },
+        "draw_resistance":   { "type": "integer", "minimum": 1, "maximum": 10, "description": "抽吸阻力 1-10" },
+
+        "overall_rating":    { "type": "integer", "minimum": 1, "maximum": 10, "required": true, "description": "总体评分 1-10" },
+        "title":             { "type": "string",  "maxLength": 200, "description": "笔记标题" },
+        "content":           { "type": "string",  "description": "笔记正文(Markdown)" },
+        "smoking_time":      { "type": "integer", "description": "品吸时长(分钟)" },
+        "pairing":           { "type": "string",  "maxLength": 300, "description": "搭配饮品/食物" },
+
+        "humidity_at_smoke": { "type": "number",  "description": "品吸时湿度(%)" },
+        "rest_time_days":    { "type": "integer", "description": "静养天数" },
+
+        "images":            { "type": "array", "items": {
+          "type": "object",
+          "properties": {
+            "image_url":   { "type": "string", "required": true },
+            "description": { "type": "string" },
+            "sort_order":  { "type": "integer", "default": 0 }
+          }
+        }, "description": "配图数组" },
+
+        "status":            { "type": "boolean", "default": true },
+        "helpful_count":     { "type": "integer", "default": 0, "description": "有用点赞数" },
+        "created_at":        { "type": "string",  "format": "date-time" },
+        "updated_at":        { "type": "string",  "format": "date-time" }
+      }
+    }
+  },
+  "relationships": {
+    "cigar_products.brand_id -> cigar_brands.id":                 "多对一：一支雪茄属于一个品牌",
+    "cigar_products.country_id -> cigar_countries.id":            "多对一：一支雪茄产自一个国家",
+    "cigar_products.wrapper_origin -> cigar_countries.id":        "多对一：茄衣产地",
+    "cigar_products.binder_origin -> cigar_countries.id":         "多对一：茄套产地",
+    "cigar_products.filler_origin -> cigar_countries.id":         "多对一：茄芯产地",
+    "cigar_brands.country_id -> cigar_countries.id":              "多对一：品牌所属国家",
+    "cigar_products <-> cigar_flavors (cigar_product_flavors)":   "多对多：一支雪茄有多个风味标签",
+    "cigar_reviews.user_id -> users.id":                          "多对一：一条笔记属于一个用户",
+    "cigar_reviews.cigar_id -> cigar_products.id":                "多对一：一条笔记针对一支雪茄",
+    "cigar_review_images.review_id -> cigar_reviews.id":          "多对一：一条笔记有多张配图"
+  },
+  "indexStrategies": {
+    "单字段索引": [
+      "cigar_products: brand_id, origin_type, country_id, strength, status, ring_gauge, created_at",
+      "cigar_reviews: user_id, cigar_id, overall_rating, status, created_at",
+      "cigar_brands: country_id, status"
+    ],
+    "复合索引": [
+      "cigar_products: (brand_id, origin_type)",
+      "cigar_reviews: (cigar_id, overall_rating)",
+      "cigar_reviews: (user_id, cigar_id)"
+    ],
+    "全文索引": [
+      "cigar_products: (vitola, series, description)",
+      "cigar_reviews: (title, content)"
+    ]
+  }
+}
