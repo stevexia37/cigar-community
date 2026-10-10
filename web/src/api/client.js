@@ -124,6 +124,20 @@ export const api = {
   logout: () => post('/auth/logout'),
   me: () => get('/auth/me'),
 
+  // ---- 管理端（需 admin / editor 角色）----
+  adminStats: () => get('/admin/stats'),
+  adminReviews: (query) => get('/admin/reviews', query),
+  adminReview: (id) => get(`/admin/reviews/${id}`),
+  adminApproveReview: (id) => post(`/admin/reviews/${id}/approve`),
+  adminRejectReview: (id, reason) => post(`/admin/reviews/${id}/reject`, { reason }),
+  adminDeleteReview: (id) => request(`/admin/reviews/${id}`, { method: 'DELETE' }),
+  adminSubmissions: (query) => get('/admin/submissions', query),
+  adminApproveSubmission: (id) => post(`/admin/submissions/${id}/approve`),
+  adminRejectSubmission: (id, reason) => post(`/admin/submissions/${id}/reject`, { reason }),
+  adminAuditLog: (query) => get('/admin/audit-log', query),
+  adminUsers: (query) => get('/admin/users', query),
+  adminSetUserStatus: (id, status) => post(`/admin/users/${id}/status`, { status }),
+
   // ---- 合规 ----
   verifyAge: (adult) => post('/gate/verify', { adult }),
   content: (slug) => get(`/content/${slug}`),

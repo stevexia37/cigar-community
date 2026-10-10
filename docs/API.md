@@ -352,6 +352,26 @@
 用户名规则：3-24 位，字母/数字/下划线/中文。口令：≥8 位且非纯数字。
 注册重复 → `409 CONFLICT`。注册/登录限流：每 IP 每分钟 10 次 → `429 TOO_MANY_REQUESTS`。
 
+## 8.5 管理端 `/api/admin/*`
+
+**权限**：全部要求登录，且角色为 `admin` 或 `editor`（`/admin/users` 及其写操作仅 `admin`）。
+未登录 → `401`；角色不足 → `403`。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/api/admin/stats` | 运营概览：待办队列数、站点总量、内容缺口、近 7 天合规处置、近 14 天明细 |
+| GET | `/api/admin/reviews` | 笔记列表，`?status=-1\|0\|1`（-1 待审 / 0 驳回 / 1 已发布）；返回 `contentFull` 完整正文供审核 |
+| GET | `/api/admin/reviews/:id` | 单条笔记 + 该笔记的审核日志（命中词与摘要） |
+| POST | `/api/admin/reviews/:id/approve` | 通过：置 `status=1`，重算雪茄评分 |
+| POST | `/api/admin/reviews/:id/reject` | 驳回：置 `status=0`，body `{ reason }` 记入日志 |
+| DELETE | `/api/admin/reviews/:id` | 删除笔记（不可恢复） |
+| GET | `/api/admin/submissions` | 投稿列表，`?status=pending\|approved\|rejected` |
+| POST | `/api/admin/submissions/:id/approve` | 通过：**写入 `cigars` 表**（自动建品牌/判型号家族/关联风味，`data_source='user'`），返回 `{ cigarId }` |
+| POST | `/api/admin/submissions/:id/reject` | 驳回，body `{ reason }` |
+| GET | `/api/admin/audit-log` | 审核日志，`?action=blocked\|queued\|approved\|rejected\|deleted\|clean` |
+| GET | `/api/admin/users` | 用户列表（含笔记数、投稿数）；仅 `admin` |
+| POST | `/api/admin/users/:id/status` | 启用/停用，body `{ status: 0\|1 }`；停用会**立即清除该用户所有会话**；不能停用管理员或自己 |
+
 ## 9. 合规
 
 ### 9.1 年龄门 `POST /api/gate/verify` body `{ "adult": true }`

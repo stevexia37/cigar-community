@@ -51,13 +51,13 @@
 
 ### P0 —— 上线前必须有
 
-**1. 管理后台（审核队列界面）**
-- 为什么：现在命中审核词的内容以 `reviews.status = -1` 入库，但**没有任何界面能看到它们**。
-  没有这个界面，「审核队列」实际等于内容黑洞 —— 用户以为发出去了，运营根本看不到。
-- 做什么：管理员登录 → 列出 `status = -1` 的笔记与 `submissions.status = 'pending'` 的投稿 →
-  通过 / 驳回（填 `reject_reason`）→ 记录 `reviewed_by` / `reviewed_at`
-- 后端地基已经在：`audit_log` 表、`requireAdmin` 守卫、`status` 三态都就绪
-- 工作量：1 个后端路由模块 + 1 个前端页面
+**1. ✅ 管理后台（已完成）**
+- 运营概览（待办队列 / 站点总量 / 内容缺口 / 合规统计）
+- 笔记审核：待审 → 通过（公开并计入评分）/ 驳回（含理由）/ 删除
+- 投稿审批：通过即**真的入库**（自动建品牌、判型号家族、关联风味、标记 `data_source='user'`）
+- 审核日志、用户启停（停用即清会话）
+- 权限：admin 与 editor 可处理内容，用户管理仅 admin；路由层与视图层双重拦截
+- 覆盖：冒烟 §12（29 项，含完整审批闭环）+ `npm run verify:admin`（27 项权限与渲染断言）
 
 **2. 真正的 Secret 与管理员口令**
 - `CC_SECRET` 生成：`node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`
@@ -65,7 +65,7 @@
 
 ### P1 —— 影响体验
 
-**3. 图片上传**
+**2. 图片上传**
 - `review_images` 表已建但无上传接口，笔记目前只能发文字，而**雪茄笔记的价值一半在图**
 - 建议：本地磁盘存 `uploads/` + `sharp` 压缩，或直接接对象存储（S3/R2）
 - **必须同时做图片审核**（`config/sensitive-words.json` 的 `image_moderation` 已列建议：

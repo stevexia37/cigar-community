@@ -41,6 +41,8 @@ if (!chromePath) {
 const paths = process.argv.slice(2).filter((a) => !a.startsWith('--'))
 // --gated：不注入年龄门 Cookie，用于验证年龄门拦截本身
 const GATED = process.argv.includes('--gated')
+// --as-admin：以管理员身份登录后再截图（管理后台需要会话）
+const AS_ADMIN = process.argv.includes('--as-admin')
 if (paths.length === 0) paths.push('/')
 
 const slug = (p) => (p === '/' ? 'home' : p.replace(/^\//, '').replace(/[/?=&]+/g, '-').slice(0, 60))
@@ -150,6 +152,14 @@ try {
     }
   })
 
+  // Cookie 必须在进入循环前准备好：
+  //   · 管理员会话取一次复用（每轮重取既慢又容易出现「首轮还没拿到就导航」）
+  //   · 年龄门 Cookie 同理
+  // 踩过的坑：把 adminCookie() 放在循环内首次迭代之后，导致第一页 100% 截到登录页。
+  const ageSid = GATED ? '' : await ageCookie()
+  const adminSid = AS_ADMIN ? await adminCookie() : ''
+  if (AS_ADMIN && !adminSid) console.warn('  ⚠ 未取得管理员会话，管理页截图会显示登录页')
+
   for (const viewport of VIEWPORTS) {
     for (const p of paths) {
       await client.send('Emulation.setDeviceMetricsOverride', {
@@ -158,18 +168,20 @@ try {
         deviceScaleFactor: 2,
         mobile: viewport.mobile,
       })
-      // 年龄门：默认绕过（等价于用户点过「我已满 18 岁」）。
-      // 加 --gated 则不种 Cookie，用来验证年龄门本身是否正常弹出。
       await client.send('Network.enable').catch(() => {})
-      if (!GATED) {
-        await client.send('Network.setCookie', {
-          name: 'cc_age',
-          value: await ageCookie(),
-          domain: '127.0.0.1',
-          path: '/',
-        }).catch(() => {})
-      } else {
+
+      if (GATED) {
+        // 验证年龄门本身：每次清空 Cookie，且不注入任何凭证
         await client.send('Network.clearBrowserCookies').catch(() => {})
+      } else {
+        await client.send('Network.setCookie', {
+          name: 'cc_age', value: ageSid, domain: '127.0.0.1', path: '/',
+        }).catch(() => {})
+        if (adminSid) {
+          await client.send('Network.setCookie', {
+            name: 'cc_sid', value: adminSid, domain: '127.0.0.1', path: '/',
+          }).catch(() => {})
+        }
       }
 
       consoleErrors.length = 0
@@ -215,6 +227,25 @@ async function ageCookie() {
   const setCookie = res.headers.getSetCookie?.() || []
   const hit = setCookie.find((c) => c.startsWith('cc_age='))
   return hit ? hit.split(';')[0].slice('cc_age='.length) : ''
+}
+
+/** 以管理员身份登录，返回会话 Cookie 值（供管理后台截图使用） */
+async function adminCookie() {
+  const res = await fetch(`${BASE}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      username: process.env.CC_ADMIN_USER || 'admin',
+      password: process.env.CC_ADMIN_PASSWORD || 'admin12345',
+    }),
+  })
+  if (!res.ok) {
+    console.warn(`  ⚠ 管理员登录失败（HTTP ${res.status}），管理页截图将显示登录页`)
+    return ''
+  }
+  const list = res.headers.getSetCookie?.() || []
+  const hit = list.find((c) => c.startsWith('cc_sid='))
+  return hit ? hit.split(';')[0].slice('cc_sid='.length) : ''
 }
 
 console.log(`\n产物目录：${OUT_DIR.replace(ROOT + '/', '')}/`)

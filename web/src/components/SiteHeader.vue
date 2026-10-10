@@ -26,6 +26,11 @@
       >登录</router-link>
 
       <div v-else class="flex items-center gap-2">
+        <router-link
+          v-if="auth.canModerate"
+          :to="{ name: 'admin-overview' }"
+          class="cc-btn-ghost !px-3 !py-1.5 text-xs hidden sm:inline-flex !border-cigar-gold/50 !text-cigar-gold"
+        >管理后台</router-link>
         <router-link to="/submit" class="cc-btn-ghost !px-3 !py-1.5 text-xs hidden sm:inline-flex">提报数据</router-link>
         <button
           class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-cigar-mute hover:text-cigar-cream"
@@ -38,6 +43,12 @@
         </button>
         <div v-if="showMenu" class="relative">
           <div class="absolute right-0 top-2 z-40 w-36 cc-card p-1.5 text-sm shadow-xl">
+            <router-link
+              v-if="auth.canModerate"
+              :to="{ name: 'admin-overview' }"
+              class="block rounded-lg px-3 py-2 text-cigar-gold hover:bg-cigar-light/50"
+              @click="showMenu = false"
+            >管理后台</router-link>
             <router-link to="/submit" class="block rounded-lg px-3 py-2 hover:bg-cigar-light/50" @click="showMenu = false">提报数据</router-link>
             <button class="block w-full rounded-lg px-3 py-2 text-left hover:bg-cigar-light/50" @click="onLogout">退出登录</button>
           </div>

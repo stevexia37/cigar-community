@@ -63,6 +63,8 @@ const auth = {
   get user() { return state.user },
   get isLoggedIn() { return !!state.user },
   get isAdmin() { return state.user?.role === 'admin' },
+  /** 能进管理后台的角色（admin 与 editor） */
+  get canModerate() { return state.user?.role === 'admin' || state.user?.role === 'editor' },
   refresh,
   login,
   register,

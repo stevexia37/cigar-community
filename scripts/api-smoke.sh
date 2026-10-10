@@ -460,6 +460,8 @@ expect_status "登出成功" 200
 request GET /api/auth/me
 expect_json   "登出后会话失效" '.user' 'null'
 
+# 注意：管理端断言在 §12，那里会重新登录一次管理员会话
+
 
 # ---------------------------------------------------------------- 11 安全回归（对应外部验收发现的缺陷）
 group "11 安全回归（防止已修缺陷复发）"
@@ -548,6 +550,107 @@ else
   bad "改口令后口令校验" "旧口令=$OLD_LOGIN（应401）新口令=$NEW_LOGIN（应200）"
 fi
 rm -f "$PWD_JAR1" "$PWD_JAR2"
+
+
+# ---------------------------------------------------------------- 12 管理后台
+group "12 管理后台（权限 / 审核闭环 / 运营数据）"
+
+# 权限：普通用户（当前会话是 admin，这里用未登录态验证 401）
+NOAUTH_ADMIN="$(curl -sS -o "$BODY" -w '%{http_code}' "$BASE/api/admin/stats")"
+LAST_STATUS="$NOAUTH_ADMIN"; LAST_BODY="$(cat "$BODY")"
+expect_status "未登录访问管理接口被拒" 401
+
+# 重新以管理员身份建立会话（前面的流程已登出）
+request POST /api/gate/verify '{"adult":true}'
+request POST /api/auth/login '{"username":"admin","password":"admin12345"}'
+expect_status "管理员登录（准备管理端断言）" 200
+
+request GET /api/admin/stats
+expect_status "运营概览可读" 200
+expect_json   "概览含待处理队列" '(.queue | type)' 'object'
+expect_json   "概览含站点总量" '(.totals.cigars > 0)' 'true'
+expect_json   "概览含内容缺口（运营待办）" '(.contentGaps | type)' 'object'
+expect_json   "概览含合规处置统计" '(.compliance.last7Days | type)' 'object'
+
+request GET '/api/admin/reviews?status=-1'
+expect_status "笔记审核队列可读" 200
+expect_json   "队列返回分页结构" '(.totalPages | type)' 'number'
+
+request GET '/api/admin/submissions?status=pending'
+expect_status "投稿审批队列可读" 200
+
+request GET '/api/admin/audit-log'
+expect_status "审核日志可读" 200
+expect_json   "日志含分页总数" '(.total | type)' 'number'
+
+request GET /api/admin/users
+expect_status "用户列表可读（仅 admin）" 200
+expect_json   "用户项含角色与状态" '(.items[0] | has("role") and has("status"))' 'true'
+
+# 审批闭环：投稿 → 通过 → 必须真的入库
+SUB_USER="subm_$(date +%s)_$RANDOM"
+SUB_JAR="$(mktemp -t cc-sub.XXXXXX)"
+curl -sS -c "$SUB_JAR" -b "$SUB_JAR" -X POST "$BASE/api/auth/register" \
+  -H 'content-type: application/json' \
+  -d "{\"username\":\"$SUB_USER\",\"password\":\"SubPass12345\"}" >/dev/null 2>&1
+
+CIGARS_BEFORE="$(curl -sS "$BASE/api/meta" | jq -r '.stats.cigars')"
+SUBMIT_RES="$(curl -sS -b "$SUB_JAR" -X POST "$BASE/api/submissions" -H 'content-type: application/json' \
+  -d '{"brand":"SmokeTestBrand","series":"Closed Loop","vitola":"Robusto","originType":"non-cuban","countryCode":"NI","strength":4,"lengthInch":5.0,"ringGauge":50,"flavorIds":[1],"description":"管理端审批闭环断言"}')"
+SUB_ID="$(printf '%s' "$SUBMIT_RES" | jq -r '.submission.id // empty')"
+if [[ -n "$SUB_ID" ]]; then ok "用户投稿成功（id=$SUB_ID）"
+else bad "用户投稿" "响应：${SUBMIT_RES:0:200}"; fi
+
+request POST "/api/admin/submissions/$SUB_ID/approve"
+expect_status "管理员通过投稿" 200
+expect_json   "返回入库后的雪茄 ID" '(.cigarId > 0)' 'true'
+NEW_CIGAR_ID="$(printf '%s' "$LAST_BODY" | jq -r '.cigarId')"
+
+request GET "/api/cigars/$NEW_CIGAR_ID"
+expect_status "通过的投稿确实入库了" 200
+expect_json   "入库雪茄品牌正确" '.cigar.brand' 'SmokeTestBrand'
+expect_json   "入库雪茄标记来源为用户投稿" '.cigar.dataSource' 'user'
+expect_json   "入库雪茄带上了风味标签" '(.cigar.flavors | length > 0)' 'true'
+
+CIGARS_AFTER="$(curl -sS "$BASE/api/meta" | jq -r '.stats.cigars')"
+if [[ "${CIGARS_AFTER:-0}" -gt "${CIGARS_BEFORE:-0}" ]]; then
+  ok "雪茄总数增加（$CIGARS_BEFORE → $CIGARS_AFTER）"
+else
+  bad "雪茄总数应增加" "$CIGARS_BEFORE → $CIGARS_AFTER"
+fi
+
+# 笔记审核闭环：进队列 → 通过 → 公开可见
+QUEUE_RES="$(curl -sS -b "$SUB_JAR" -X POST "$BASE/api/reviews" -H 'content-type: application/json' \
+  -d '{"cigarId":1,"content":"请问这支多少钱一支？","overallRating":7}')"
+QUEUE_ID="$(printf '%s' "$QUEUE_RES" | jq -r '.review.id // empty')"
+QUEUE_STATUS="$(printf '%s' "$QUEUE_RES" | jq -r '.review.status // empty')"
+if [[ "$QUEUE_STATUS" == "-1" ]]; then ok "命中审核词的笔记以 status=-1 入库（进队列）"
+else bad "笔记入队" "status=$QUEUE_STATUS 响应=${QUEUE_RES:0:160}"; fi
+
+request POST "/api/admin/reviews/$QUEUE_ID/approve"
+expect_status "管理员通过笔记" 200
+
+request GET "/api/cigars/1"
+expect_json "通过后笔记计入评分汇总" '(.cigar.reviewSummary.count >= 1)' 'true'
+
+request GET "/api/reviews?cigarId=1"
+expect_json "通过后笔记在公开列表可见" '(.total >= 1)' 'true'
+
+# 审核动作必须留痕
+request GET '/api/admin/audit-log?pageSize=5'
+expect_json "审核动作写入日志" '([.items[].action] | length > 0)' 'true'
+
+# 驳回路径
+REJ_RES="$(curl -sS -b "$SUB_JAR" -X POST "$BASE/api/submissions" -H 'content-type: application/json' \
+  -d '{"brand":"RejectBrand","vitola":"Corona","originType":"cuban"}')"
+REJ_ID="$(printf '%s' "$REJ_RES" | jq -r '.submission.id // empty')"
+request POST "/api/admin/submissions/$REJ_ID/reject" '{"reason":"测试驳回"}'
+expect_status "管理员驳回投稿" 200
+request GET '/api/admin/submissions?status=rejected'
+expect_json "驳回后状态为 rejected 且带理由" \
+  '([.items[] | select(.id == '"$REJ_ID"')] | .[0].status) // "missing"' 'rejected'
+
+rm -f "$SUB_JAR"
 
 # ---------------------------------------------------------------- 汇总
 printf '\n%s\n' "$(color '1;36' '────────────────────────────────')"

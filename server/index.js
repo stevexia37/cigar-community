@@ -15,6 +15,7 @@ import { reviewRouter } from './api/reviews.js'
 import { submissionRouter } from './api/submissions.js'
 import { authRouter } from './api/auth.js'
 import { miscRouter } from './api/misc.js'
+import { adminRouter } from './api/admin.js'
 
 const VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version
 
@@ -34,7 +35,7 @@ purgeExpiredSessions()
 // ---------------------------------------------------------------- 路由装配
 // 每个子路由内部只写相对路径（'/cigars'），前缀 '/api' 在这里统一挂
 const router = new Router()
-for (const sub of [miscRouter, metaRouter, cigarRouter, toolRouter, reviewRouter, submissionRouter, authRouter]) {
+for (const sub of [miscRouter, metaRouter, cigarRouter, toolRouter, reviewRouter, submissionRouter, authRouter, adminRouter]) {
   router.mount('/api', sub)
 }
 

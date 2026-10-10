@@ -22,7 +22,8 @@
     "preflight": "bash scripts/preflight.sh",
     "backup": "bash scripts/backup-db.sh",
     "verify:ui": "node scripts/verify-ui.mjs",
-    "screenshot": "node scripts/screenshot.mjs"
+    "screenshot": "node scripts/screenshot.mjs",
+    "verify:admin": "node scripts/verify-admin-ui.mjs"
   },
   "workspaces": [
     "web"
