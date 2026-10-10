@@ -41,7 +41,7 @@ const SELECT_CIGAR = `
          c.length_inch, c.length_mm, c.ring_gauge, c.origin_type, c.country_id,
          c.wrapper_variety, c.wrapper_origin, c.binder_variety, c.filler_variety,
          c.strength, c.recommended_humidity, c.recommended_temperature, c.wrapper_color,
-         c.description, c.image_url, c.price_cny, c.rating, c.review_count,
+         c.description, c.image_url, c.price_cny, c.rating, c.review_count, c.seed_review_count,
          c.data_source, c.created_at,
          b.name AS brand_name, co.code AS country_code, co.name_cn AS country_name_cn
   FROM cigars c
@@ -98,6 +98,8 @@ export function shapeCigar(row, flavors = []) {
     priceCny: row.price_cny,
     rating: row.rating,
     reviewCount: row.review_count ?? 0,
+    // 其中有多少来自种子参考数据（前端据此标注「含参考数据」）
+    seedReviewCount: row.seed_review_count ?? 0,
     dataSource: row.data_source || null,
     flavors,
   }

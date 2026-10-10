@@ -41,7 +41,13 @@ export const config = {
   })(),
   adminUser: env('CC_ADMIN_USER', 'admin'),
   adminPassword: env('CC_ADMIN_PASSWORD', 'admin12345'),
-  trustProxy: Number(env('CC_TRUST_PROXY', 1)),
+  /**
+   * 信任的反向代理层数。
+   * ⚠️ 默认 0（不信任）：若默认信任 1 层，攻击者直连时自带 X-Forwarded-For
+   * 就能每次换一个 IP 绕过限流（实测：伪造 XFF 后 14/14 次注册全部成功）。
+   * 只有确实部署在反代后面时才应设为 1（前面还有 Cloudflare 则设 2）。
+   */
+  trustProxy: Math.max(0, Number(env('CC_TRUST_PROXY', 0)) || 0),
   /** 关闭限流：仅供自动化测试使用（生产环境永远不应开启） */
   rateLimitDisabled: env('CC_RATE_LIMIT_DISABLED', '') === '1',
   /** 静默启动日志：仅供自动化测试使用 */

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+# 年龄门后台与接口无需收录
+Disallow: /api/
+
+# 主要内容区允许收录
+Sitemap: /sitemap.xml

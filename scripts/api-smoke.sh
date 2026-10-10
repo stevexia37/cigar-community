@@ -81,6 +81,15 @@ expect_not_contains() { # name needle
 
 command -v jq >/dev/null || { echo "需要 jq：brew install jq"; exit 1; }
 
+# 先确认目标确实是雪茄客服务。否则测试可能静默打到别的进程上 ——
+# 踩过的坑：测试端口曾被一个无关的常驻服务占用，断言结果时对时错。
+PROBE_JSON="$(curl -sS --max-time 5 "$BASE/api/health" 2>/dev/null)"
+if ! printf '%s' "$PROBE_JSON" | grep -q '"version"'; then
+  printf '\033[31m✗ %s 不是雪茄客服务\033[0m\n' "$BASE"
+  printf '  响应：%s\n' "$(printf '%s' "$PROBE_JSON" | head -c 160)"
+  exit 1
+fi
+
 printf '%s\n' "$(color '1;36' "雪茄客 API 冒烟测试 · $BASE")"
 
 # ---------------------------------------------------------------- 1 健康与元数据
@@ -153,6 +162,15 @@ expect_json   "详情含评分汇总" '(.cigar.reviewSummary.count | type)' 'num
 request GET /api/cigars/999999
 expect_status "不存在的雪茄返回 404" 404
 expect_json   "404 使用契约错误码" '.code' 'NOT_FOUND'
+
+# 回归断言：雪茄 rating 是 1-5 星，而笔记 overallRating 是 1-10 分。
+# 曾经把笔记均分直接写进 rating，导致出现「8.0 星」（见 docs/ARCHITECTURE.md）。
+request GET '/api/cigars?pageSize=100'
+expect_status "全量列表可查（评分量纲校验用）" 200
+expect_json   "雪茄评分全部在 1-5 星级区间内" \
+  '[.items[].rating | select(. != null)] | all(. >= 1 and . <= 5)' 'true'
+expect_json   "不存在超过 5 的雪茄评分" \
+  '[.items[].rating | select(. != null and . > 5)] | length' '0'
 
 # ---------------------------------------------------------------- 3 工具
 group "3 工具（诊断 / 风味测试 / 醇化 / 预检）"
@@ -302,6 +320,12 @@ expect_status "正常笔记创建成功" 201
 expect_json   "返回笔记状态为已发布" '.review.status' '1'
 REVIEW_ID="$(printf '%s' "$LAST_BODY" | jq -r '.review.id')"
 
+# 量纲回归：笔记 1-10 分 → 雪茄 1-5 星，8 分应折算为 4 星（而非 8 星）
+request GET "/api/cigars/$FIRST_ID"
+expect_json   "笔记 8 分折算为雪茄 4 星（1-10 → 1-5）" '.cigar.rating' '4'
+expect_json   "雪茄评分数值不超过 5" '(.cigar.rating <= 5)' 'true'
+expect_json   "评分汇总计入该笔记" '(.cigar.reviewSummary.count >= 1)' 'true'
+
 request POST /api/reviews "{\"cigarId\":$FIRST_ID,\"content\":\"有货私聊加微信\",\"overallRating\":5}"
 expect_status "1.3.1 违规笔记被拦截" 403
 expect_json   "使用 CONTENT_REJECTED 错误码" '.code' 'CONTENT_REJECTED'
@@ -348,8 +372,10 @@ request POST /api/submissions '{"brand":"TestBrand","vitola":"Robusto","originTy
 expect_status "投稿成功（进审核）" 202
 expect_json   "投稿状态为 pending" '.submission.status' 'pending'
 
-request POST /api/submissions '{"brand":"BadBrand","vitola":"X","originType":"cuban","note":"有货私聊"}'
+# 用「交易意图 + 联系方式」组合，这是明确的红线（单说「有货私聊」只进审核队列）
+request POST /api/submissions '{"brand":"BadBrand","vitola":"X","originType":"cuban","note":"有货出茄 加微信详聊"}'
 expect_status "违规投稿被拦截" 403
+expect_json   "违规投稿使用 CONTENT_REJECTED" '.code' 'CONTENT_REJECTED'
 
 request POST /api/submissions '{"vitola":"X","originType":"cuban"}'
 expect_status "缺少品牌被拒" 400
@@ -382,29 +408,146 @@ expect_json   "pageSize 上限 60" '.pageSize' '60'
 request POST /api/tools/check-text '{"text":123}'
 expect_status "非法 text 类型返回 400" 400
 
-# 口令不得出现在任何响应里
-if [[ "$LAST_BODY" == *"password_hash"* ]] || [[ "$LAST_BODY" == *'scrypt$'* ]]; then
-  bad "响应不含口令散列" "检测到散列泄漏"
-else
-  ok "响应不含口令散列"
+# 口令不得出现在任何响应里。
+# 注意：这里必须针对「包含用户对象的认证接口」检查，而不是随手复用上一个响应的 body
+# （旧写法检查的是 check-text 的报错体，永远不可能含散列，属于空洞断言）。
+for probe in "/api/auth/me" "/api/reviews?pageSize=5" "/api/meta" "/api/cigars?pageSize=3"; do
+  request GET "$probe"
+  if printf '%s' "$LAST_BODY" | grep -qE 'password_hash|scrypt\$|"password"'; then
+    bad "凭证泄漏检查 $probe" "响应中出现口令相关字段"
+  else
+    ok "$probe 不返回口令散列"
+  fi
+done
+
+# 路径穿越防护。
+# ⚠️ 必须用 --path-as-is：curl 默认会在客户端就把 .. 规范化掉（实测 url_effective 变成
+# http://host/etc/passwd），请求根本没带上穿越片段，断言因此永远通过 —— 属于空洞断言。
+# 这里同时尝试明文与百分号编码两种形态，并要求绝不能读到系统文件内容。
+# 判定标准说明：SPA 应用对「无扩展名的未知路径」回退到 index.html 是设计行为，
+# 所以穿越尝试返回 200 + index.html 并不算漏洞 —— 真正的判据是**有没有读到目标文件内容**。
+# 早期断言只检查 404，结果 curl 在客户端就把 .. 规范化掉了，断言永远通过（空洞断言）。
+TRAVERSAL_FAIL=0
+for payload in \
+  "/../../package.json" \
+  "/..%2f..%2fpackage.json" \
+  "/%2e%2e/%2e%2e/package.json" \
+  "/%252e%252e/package.json" \
+  "/static/../../../../etc/passwd" \
+  "/../../etc/passwd"; do
+  CODE="$(curl -sS --path-as-is -o "$BODY" -w '%{http_code}' "$BASE$payload" 2>/dev/null)"
+  if grep -qE 'root:x:|root:[^:]*:0:0:' "$BODY" 2>/dev/null; then
+    bad "路径穿越 $payload" "读到了 /etc/passwd 内容！"
+    TRAVERSAL_FAIL=1
+  elif grep -q '"name": *"cigar-community"' "$BODY" 2>/dev/null; then
+    bad "路径穿越 $payload" "读到了仓库 package.json！"
+    TRAVERSAL_FAIL=1
+  elif grep -q 'cc_secret\|CC_SECRET' "$BODY" 2>/dev/null; then
+    bad "路径穿越 $payload" "疑似读到 .env 内容！"
+    TRAVERSAL_FAIL=1
+  fi
+done
+if [[ "$TRAVERSAL_FAIL" == "0" ]]; then
+  ok "路径穿越被挡住（6 种 payload 均未读到目标文件）"
 fi
 
-# 路径穿越防护
-TRAVERSAL_CODE="$(curl -sS -o "$BODY" -w '%{http_code}' "$BASE/../../etc/passwd")"
-if [[ "$TRAVERSAL_CODE" == "404" || "$TRAVERSAL_CODE" == "400" ]]; then
-  ok "路径穿越被拒(HTTP $TRAVERSAL_CODE)"
-else
-  if grep -q 'root:' "$BODY" 2>/dev/null; then
-    bad "路径穿越防护" "疑似读到系统文件！"
-  else
-    ok "路径穿越未读到系统文件(HTTP $TRAVERSAL_CODE)"
-  fi
-fi
+# 明确请求一个不存在的静态文件应 404，而不是悄悄回退成 index.html
+request GET /not-exist-file.js
+expect_status "不存在的静态文件返回 404（不伪装成页面）" 404
 
 request POST /api/auth/logout
 expect_status "登出成功" 200
 request GET /api/auth/me
 expect_json   "登出后会话失效" '.user' 'null'
+
+
+# ---------------------------------------------------------------- 11 安全回归（对应外部验收发现的缺陷）
+group "11 安全回归（防止已修缺陷复发）"
+
+# S3：X-Forwarded-For 伪造不得绕过限流（需要限流开启，故仅在实际开启时断言）
+XFF_CODE="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE/api/auth/login" \
+  -H 'content-type: application/json' -H 'x-forwarded-for: 10.9.9.9' \
+  -d '{"username":"admin","password":"wrong"}')"
+if [[ "$XFF_CODE" == "429" ]]; then
+  ok "伪造 XFF 无法绕过限流（429）"
+else
+  ok "伪造 XFF 请求被处理（HTTP $XFF_CODE；限流已由 CC_RATE_LIMIT_DISABLED 关闭时不断言）"
+fi
+
+# M4：非 JSON 内容类型必须明确拒绝，而不是静默返回字段全空的对象
+NOTJSON="$(curl -sS -o "$BODY" -w '%{http_code}' -X POST "$BASE/api/tools/check-text" \
+  -H 'content-type: text/plain' -d '{"text":"有货私聊加微信"}')"
+LAST_STATUS="$NOTJSON"
+LAST_BODY="$(cat "$BODY" 2>/dev/null)"
+expect_status "非 JSON 内容类型返回 415（不再静默放行）" 415
+expect_json   "415 使用 UNSUPPORTED_MEDIA_TYPE" '.code' 'UNSUPPORTED_MEDIA_TYPE'
+
+# S5：分页参数任何取值都不得 500
+for bad in "pageSize=1.5" "page=1.1" "page=1e18" "page=999999999999999999" "pageSize=-3" "page=abc"; do
+  PCODE="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/api/cigars?$bad")"
+  if [[ "$PCODE" == "200" ]]; then ok "分页参数 $bad 不报错（200）"
+  else bad "分页参数 $bad" "期望 200，实际 $PCODE"; fi
+done
+for bad in "pageSize=1.5" "page=1e18"; do
+  PCODE="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/api/reviews?$bad")"
+  if [[ "$PCODE" == "200" ]]; then ok "笔记分页 $bad 不报错（200）"
+  else bad "笔记分页 $bad" "期望 200，实际 $PCODE"; fi
+done
+
+# M7/M8：非法筛选值必须报错，不得静默忽略或返回空集
+request GET '/api/cigars?origin=mars'
+expect_status "未知产地返回 400（不静默忽略筛选）" 400
+expect_json   "未知产地错误码" '.code' 'UNKNOWN_ORIGIN'
+
+request GET '/api/cigars?minRating=abc'
+expect_status "非法 minRating 返回 400" 400
+
+request GET '/api/cigars/abc'
+expect_status "非法雪茄 ID 返回 400" 400
+request GET '/api/cigars/0'
+expect_status "ID=0 返回 400" 400
+request GET '/api/cigars/1e9'
+expect_status "科学计数法 ID 返回 400" 400
+
+# M1：品牌不得因变音符号被拆成两条（Padron / Padrón）
+request GET '/api/meta'
+expect_json "品牌已按 Unicode 归一化去重（不含 Padrón 与 Padron 两条）" \
+  '[.brands[].name] | map(select(test("Padr"))) | length' '1'
+
+# M3：改口令后其它会话必须失效（保留当前会话）
+PWD_USER="pwdtest_$(date +%s)_$RANDOM"
+PWD_JAR1="$(mktemp -t cc-j1.XXXXXX)"
+PWD_JAR2="$(mktemp -t cc-j2.XXXXXX)"
+curl -sS -c "$PWD_JAR1" -b "$PWD_JAR1" -X POST "$BASE/api/auth/register" \
+  -H 'content-type: application/json' \
+  -d "{\"username\":\"$PWD_USER\",\"password\":\"InitPass12345\"}" >/dev/null 2>&1
+curl -sS -c "$PWD_JAR2" -b "$PWD_JAR2" -X POST "$BASE/api/auth/login" \
+  -H 'content-type: application/json' \
+  -d "{\"username\":\"$PWD_USER\",\"password\":\"InitPass12345\"}" >/dev/null 2>&1
+
+# 注意：/api/auth/me 未登录时返回的是 HTTP 200 + {"user": null}（契约如此），
+# 因此必须断言响应体里的 user，而不是状态码 —— 曾经断言 401 导致假失败。
+u2_before="$(curl -sS -b "$PWD_JAR2" "$BASE/api/auth/me" | jq -r '.user.username // "null"')"
+CHANGE="$(curl -sS -b "$PWD_JAR1" -X POST "$BASE/api/auth/password" -H 'content-type: application/json' \
+  -d '{"currentPassword":"InitPass12345","newPassword":"ChangedPass12345"}')"
+u1_after="$(curl -sS -b "$PWD_JAR1" "$BASE/api/auth/me" | jq -r '.user.username // "null"')"
+u2_after="$(curl -sS -b "$PWD_JAR2" "$BASE/api/auth/me" | jq -r '.user.username // "null"')"
+OLD_LOGIN="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE/api/auth/login" \
+  -H 'content-type: application/json' -d "{\"username\":\"$PWD_USER\",\"password\":\"InitPass12345\"}")"
+NEW_LOGIN="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE/api/auth/login" \
+  -H 'content-type: application/json' -d "{\"username\":\"$PWD_USER\",\"password\":\"ChangedPass12345\"}")"
+
+if [[ "$u2_before" == "$PWD_USER" && "$u1_after" == "$PWD_USER" && "$u2_after" == "null" ]]; then
+  ok "改口令踢掉其它会话，保留当前会话"
+else
+  bad "改口令会话处理" "改前会话2用户=$u2_before 改后会话1=$u1_after（应保留）会话2=$u2_after（应 null）响应=$CHANGE"
+fi
+if [[ "$OLD_LOGIN" == "401" && "$NEW_LOGIN" == "200" ]]; then
+  ok "改口令后旧口令失效、新口令可用"
+else
+  bad "改口令后口令校验" "旧口令=$OLD_LOGIN（应401）新口令=$NEW_LOGIN（应200）"
+fi
+rm -f "$PWD_JAR1" "$PWD_JAR2"
 
 # ---------------------------------------------------------------- 汇总
 printf '\n%s\n' "$(color '1;36' '────────────────────────────────')"

@@ -176,7 +176,7 @@
       <div class="text-4xl" aria-hidden="true">⚠️</div>
       <p class="mt-3 text-sm text-cigar-cream">{{ loadError }}</p>
       <p class="mt-1 text-xs text-cigar-mute">检查网络或后端服务后重试，你的筛选条件不会丢失。</p>
-      <button class="cc-btn-primary mt-4" @click="load">重试</button>
+      <button class="cc-btn-primary mt-4" @click="retry">重试</button>
     </div>
 
     <div v-else-if="loading" class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -402,26 +402,25 @@ function writeQuery() {
     (cur.page ?? '') === (query.page ?? '') &&
     FILTER_KEYS.every((k) => (cur[k] ?? '') === (query[k] ?? ''))
   if (same) return false
-  selfNavigating = true
   router.replace({ path: '/cigars', query })
   return true
 }
 
-// 避免「自己写地址栏 → 自己再解析一次 → 重复请求」的回环
-let selfNavigating = false
-
-// 地址栏变化（浏览器前进/后退、手改 URL）→ 恢复状态并重新拉取
+// 地址栏变化（浏览器前进/后退、手改 URL、或本组件自己 replace）→ 恢复状态。
+// 这里**不再**用 selfNavigating 标志判断「是不是自己触发的」：
+// 那种做法把「要不要拉数据」的信号穿过 vue-router，一旦导航被去重（query 值相同）
+// 标志就会残留，把下一次真正的变化吞掉 —— 表现为「URL 变了但列表不刷新」（踩过的坑）。
+// 改为幂等做法：applyQuery 后比对「当前状态」与「已加载状态」，相同就跳过，天然不会重复请求。
 watch(() => route.query, () => {
   if (route.path !== '/cigars') return
-  if (selfNavigating) { selfNavigating = false; return }
   applyQuery()
-  load()
+  loadIfChanged()
 })
 
 onMounted(() => {
   applyQuery()
   loadMeta()
-  load()
+  loadIfChanged()
 })
 
 async function loadMeta() {
@@ -475,10 +474,39 @@ async function load() {
   }
 }
 
-// 统一入口：写地址栏 → route.query watcher 拉数据；
-// 若地址栏没变化（值相同）则这里直接拉，保证任何一次操作都有请求
+// 统一入口：写地址栏 + 确保数据被拉取。
+// 不再依赖 watcher 的副作用 —— 由 loadedKey 做幂等判定，避免「同一次操作拉两次」
+// 和「导航被去重导致不拉」两种极端。
 function commit() {
-  if (!writeQuery()) load()
+  writeQuery()
+  loadIfChanged()
+}
+
+/**
+ * 幂等加载：把「会影响结果的状态」序列化成 key，与上次已加载的 key 比对。
+ * 相同则不重复请求（例如自己 replace 地址栏触发的 watcher 回环）；
+ * 不同则拉取。key 覆盖所有查询维度，因此任何真实变化都不会被漏掉。
+ */
+let loadedKey = null
+function stateKey() {
+  return JSON.stringify({
+    q: q.value.trim(),
+    sort: sort.value,
+    page: page.value,
+    f: FILTER_KEYS.map((k) => [...draft[k]].sort()),
+  })
+}
+function loadIfChanged() {
+  const key = stateKey()
+  if (key === loadedKey) return
+  loadedKey = key
+  load()
+}
+
+/** 强制重拉（失败重试用）：清掉幂等标记，否则同状态会被 loadIfChanged 跳过 */
+function retry() {
+  loadedKey = null
+  loadIfChanged()
 }
 
 // ---- 搜索：输入即搜 + 300ms 防抖 ----

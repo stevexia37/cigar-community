@@ -10,7 +10,7 @@
 --   6. ON UPDATE CURRENT_TIMESTAMP → 由应用层显式写入
 --
 -- 额外扩展字段（MySQL 设计稿没有、但前端已经依赖的展示字段）：
---   cigars.price_cny / rating / review_count / vitola_family
+--   cigars.price_cny / rating / base_rating / review_count / seed_review_count / vitola_family
 --   来源：cigar-filter/src/composables/useCigarFilter.js 的 MOCK_CIGARS
 --   这些是「演示必需字段」，在迁移到 MySQL 时需同步补进 schema.sql
 -- ============================================================================
@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS countries (
 CREATE TABLE IF NOT EXISTS brands (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   name        TEXT    NOT NULL,
+  -- 归一化名（NFKC + 去变音符号 + 小写）。Padron 与 Padrón 必须视为同一品牌，
+  -- 否则会被拆成两条，同一支雪茄出现两次（实测：实际 41 款却报 42，品牌数 22 应为 21）
+  name_norm   TEXT,
   name_cn     TEXT,
   description TEXT,
   country_id  INTEGER REFERENCES countries(id) ON DELETE SET NULL,
@@ -40,6 +43,8 @@ CREATE TABLE IF NOT EXISTS brands (
   created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
   updated_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
+-- 归一化名（NFKC + 去变音符号 + 小写）：用于合并 Padron / Padrón 这类同一品牌的写法差异
+
 CREATE INDEX IF NOT EXISTS idx_brand_country ON brands(country_id);
 CREATE INDEX IF NOT EXISTS idx_brand_status  ON brands(status);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_brand_name ON brands(name);
@@ -87,6 +92,15 @@ CREATE TABLE IF NOT EXISTS cigars (
   price_cny     REAL,
   rating        REAL,
   review_count  INTEGER NOT NULL DEFAULT 0,
+  -- 种子自带的「参考笔记数」（原型演示数据，并非真实用户产出）。
+  -- 真实用户笔记数单独存在 reviews 表；二者分开是为了：
+  --   · 让页面能诚实标注哪些数字来自种子数据
+  --   · 避免重跑 seed 把真实 notes 数覆盖成种子数字
+  seed_review_count INTEGER NOT NULL DEFAULT 0,
+  -- 种子/官方基准评分（1-5 星）。与用户评分分开存放：
+  -- 用户笔记打的是 1-10 分，两种量纲不能直接互相覆盖。
+  -- （踩过的坑：曾把 8 分的笔记均分直接写进 1-5 星的 rating，导致出现 8.0 星）
+  base_rating   REAL,
 
   -- 数据来源：'seed-csv' 官方品鉴库 / 'mock' 原型演示数据 / 'user' 用户投稿
   data_source   TEXT NOT NULL DEFAULT 'manual',

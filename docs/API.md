@@ -27,6 +27,10 @@
 | `CONTENT_REJECTED` | 403 | 命中敏感词红线（`details.matched` 列出命中词） |
 | `CONTENT_QUEUED` | 202 | 命中审核词，内容进审核队列，不公开显示 |
 | `TOO_MANY_REQUESTS` | 429 | 触发限流 |
+| `UNSUPPORTED_MEDIA_TYPE` | 415 | 写接口只接受 `application/json`（或表单） |
+| `UNKNOWN_ORIGIN` | 400 | `origin` 参数含未知值（`details.unknown` / `details.allowed`） |
+| `INVALID_MIN_RATING` | 400 | `minRating` 不是 0-5 的数字 |
+| `INVALID_ID` | 400 | 路径或查询中的 ID 不是正整数 |
 | `INTERNAL_ERROR` | 500 | 服务端异常 |
 
 ---
@@ -39,7 +43,7 @@
 
 ```jsonc
 {
-  "stats": { "cigars": 42, "brands": 22, "flavors": 31, "reviews": 0, "users": 1 },
+  "stats": { "cigars": 40, "brands": 21, "flavors": 31, "reviews": 0, "users": 1 },
   "origins": [                                   // 产地筛选
     { "value": "cuba", "label": "古巴", "code": "CU", "is_cuban": true, "count": 16 }
   ],
@@ -82,7 +86,10 @@
 | `brand` | `1,3` | 品牌 id |
 | `minRating` | `4.0` | 最低评分 |
 | `sort` | `rating` | 见 `/api/meta` 的 `sortOptions` |
-| `page` / `pageSize` | `1` / `24` | 分页 |
+| `page` / `pageSize` | `1` / `24` | 分页（`pageSize` 上限 60；非法值取整钳制，不报错） |
+
+> 传入无法识别的 `origin` 会返回 `400 UNKNOWN_ORIGIN`，**不会**静默忽略筛选条件。
+> `minRating` 非数字返回 `400 INVALID_MIN_RATING`。
 
 → `200`
 
@@ -114,6 +121,7 @@
       "priceCny": 35,
       "rating": 4.7,
       "reviewCount": 128,
+      "seedReviewCount": 128,
       "flavors": [ { "id": 1, "name": "Bean", "label": "豆香" } ]
     }
   ],
@@ -142,6 +150,13 @@
   }
 }
 ```
+
+**评分量纲（重要）**：`rating` 是 **1–5 星**（雪茄维度），
+而笔记的 `overallRating` 是 **1–10 分**（品吸维度）。两者不可混用：
+服务端在汇总用户笔记时会做 `1-10 → 1-5` 的折算，没有用户笔记时回落到种子基准分。
+
+`reviewCount` 是当前展示的笔记数；`seedReviewCount` 说明其中有多少是种子参考数据
+（原型演示数字，非真实用户产出），前端可据此标注「含参考数据」。
 
 不存在 → `404 NOT_FOUND`
 
@@ -291,7 +306,7 @@
 ```
 
 - 命中红线 → `403 CONTENT_REJECTED`，`details.matched` 为命中词数组，内容不入库
-- 命中审核词 → `202 CONTENT_QUEUED`，内容以 `status:-1` 入库，不公开
+- 命中审核词 → `202 CONTENT_QUEUED`（响应体带 `code: "CONTENT_QUEUED"`），内容以 `status:-1` 入库，不公开
 - 正常 → `201`，返回 `{ "review": { … }, "sensitivity": { "action": "clean", "matched": [] } }`
 
 ### 6.3 有用投票 `POST /api/reviews/:id/helpful`（需登录）
@@ -326,9 +341,13 @@
 | POST | `/api/auth/register` | `{ username, password, email? }` | `201 { user }` |
 | POST | `/api/auth/login` | `{ username, password }` | `200 { user }` |
 | POST | `/api/auth/logout` | — | `200 { ok: true }` |
-| GET | `/api/auth/me` | — | `200 { user }` 或 `200 { user: null }` |
+| POST | `/api/auth/password` | `{ currentPassword, newPassword }` | `200 { ok: true, revokedSessions: N }` |
+| GET | `/api/auth/me` | — | `200 { user, ageVerified, isBot }` 或 `200 { user: null }` |
 
-`user` 结构：`{ "id": 1, "username": "admin", "role": "admin", "avatarUrl": null, "bio": "…", "createdAt": "…" }`
+> 改口令会**立即失效该用户的其它所有会话**（保留当前会话），返回 `revokedSessions` 数量。
+> 这是「口令泄露后改口令踢下线」这一安全预期的必要条件。
+
+`user` 结构：`{ "id": 1, "username": "admin", "email": null, "role": "admin", "avatarUrl": null, "bio": "…", "createdAt": "…" }`
 
 用户名规则：3-24 位，字母/数字/下划线/中文。口令：≥8 位且非纯数字。
 注册重复 → `409 CONFLICT`。注册/登录限流：每 IP 每分钟 10 次 → `429 TOO_MANY_REQUESTS`。

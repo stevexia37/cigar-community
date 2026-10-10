@@ -101,5 +101,18 @@ authRouter.post('/auth/password', async (req, res) => {
 
   run('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?',
     [hashPassword(next), nowIso(), user.id])
-  sendJson(res, 200, { ok: true })
+
+  // 口令变更必须让其它会话立即失效，否则「改口令踢下线」这个安全预期不成立：
+  // 攻击者若已窃取会话，改口令也赶不走它（实测旧会话仍能 200）。
+  // 当前会话保留，避免用户改完口令就被自己登出。
+  //
+  // 注意 user.sessionId 的来历：readSession() 曾用 `s.id AS sid, u.id` 这种重名列写法，
+  // node:sqlite 只保留最后一个同名列，导致 sessionId 串成用户 id、删错会话。
+  // 现在 readSession 的列别名已唯一化（session_id / user_id），这里才可靠。
+  const revoked = run(
+    'DELETE FROM sessions WHERE user_id = ? AND id <> ?',
+    [user.id, user.sessionId],
+  ).changes
+
+  sendJson(res, 200, { ok: true, revokedSessions: revoked })
 })

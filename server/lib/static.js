@@ -47,8 +47,36 @@ function cacheControl(pathname) {
   return 'public, max-age=3600'
 }
 
+/**
+ * 把 URL 路径变成文件系统路径，拒绝一切越界尝试。
+ *
+ * 关键：**先解码再判定**。早期实现只对解码后的路径做前缀校验，
+ * 于是 `/../../etc/passwd` 会被判为「不是静态文件」而掉进 SPA 回退，
+ * 返回 200 + index.html —— 没有泄露文件，但把一次明确的攻击伪装成了正常页面，
+ * 断言与日志都看不出问题，也掩盖了真实的失败信号。
+ *
+ * 返回 null 表示「这个路径不应被当作静态请求处理」（由调用方返回 404）。
+ */
 function resolveSafe(root, urlPath) {
-  const decoded = decodeURIComponent(urlPath.split('?')[0])
+  const rawPath = String(urlPath).split('?')[0]
+  let decoded
+  try {
+    decoded = decodeURIComponent(rawPath)
+  } catch {
+    return null
+  }
+
+  // 双重编码（%252e）要再解一次才暴露 ..
+  let twice = decoded
+  try {
+    twice = decodeURIComponent(decoded)
+  } catch { /* 只需一次解码即可，忽略 */ }
+
+  for (const candidate of [decoded, twice]) {
+    const normalized = normalize(candidate).replace(/\\/g, '/')
+    if (normalized.split('/').includes('..')) return null
+  }
+
   const normalized = normalize(decoded).replace(/^(\.\.[/\\])+/, '')
   const target = join(root, normalized)
   const rootWithSep = root.endsWith(sep) ? root : root + sep
@@ -112,6 +140,15 @@ export function createStaticHandler(root) {
       }
     } catch {
       // 落到下面的 SPA 回退
+    }
+
+    // 浏览器会自动请求 /favicon.ico。我们没有 .ico 文件（用的是 SVG 图标），
+    // 若让它掉进 SPA 回退会返回 HTML，反而在控制台留下解析错误。
+    // 按 RFC 9110 返回 204 No Content 更干净，也避免为一个小图标提交二进制文件。
+    if (pathname === '/favicon.ico') {
+      res.writeHead(204, { 'cache-control': 'public, max-age=86400' })
+      res.end()
+      return true
     }
 
     // SPA 回退：只要不是带扩展名的静态请求，就交给前端路由

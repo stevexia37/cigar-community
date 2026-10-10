@@ -21,6 +21,12 @@ const VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.u
 assertProductionSafety()
 
 // ---------------------------------------------------------------- 启动引导
+// 信任代理层数是个安全开关，配错等于限流失效，启动时必须可见
+if (config.trustProxy > 0) {
+  console.log(`[security] CC_TRUST_PROXY=${config.trustProxy}：将信任 X-Forwarded-For 的前 ${config.trustProxy} 跳。`)
+  console.log('[security] 若前面并没有这么多层反向代理，攻击者可伪造该头绕过限流。')
+}
+
 const bootStats = bootstrap()
 stampVersion('1.1.0')
 purgeExpiredSessions()

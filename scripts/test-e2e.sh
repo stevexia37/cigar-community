@@ -13,7 +13,7 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PORT="${CC_TEST_PORT:-18789}"
+PORT="${CC_TEST_PORT:-18877}"
 TMPDIR_CC="$(mktemp -d -t cc-e2e.XXXXXX)"
 DB_FILE="$TMPDIR_CC/test.db"
 SERVER_LOG="$TMPDIR_CC/server.log"
@@ -34,6 +34,25 @@ step() { printf '\n%s %s\n' "$(color '1;36' '▶')" "$1"; }
 step "单元测试（规则引擎 / 合规熔断）"
 if ! (cd "$ROOT" && node --test scripts/ 2>&1 | tail -12); then
   printf '%s\n' "$(color '31' '单元测试失败，终止')"
+  exit 1
+fi
+
+# 端口必须是干净的：若已有服务占着这个端口，测试会打到那个实例上，
+# 于是「测试通过」或「测试失败」都可能来自错误的代码版本（实际踩过这个坑：
+# 残留实例让改口令的回归断言时对时错，浪费了大量排查时间）。
+# 关键：判断端口占用必须校验「响应来自本应用」而不是「有响应」。
+# 踩过的坑：本脚本原用 18789 作为测试端口，而该端口被本机一个无关的常驻服务占用，
+# 于是测试静默打到了那个服务上 —— 断言结果时对时错，排查成本极高。
+PORT_BODY="$(curl -sS --max-time 2 "http://127.0.0.1:$PORT/api/health" 2>/dev/null)"
+if printf '%s' "$PORT_BODY" | grep -q '"ok"'; then
+  printf '%s\n' "$(color '31' "  ✗ 端口 $PORT 已被本应用的另一个实例占用")"
+  printf '  请先结束它（pkill -f "server/index.js"），或换端口：\n'
+  printf '    CC_TEST_PORT=18888 bash scripts/test-e2e.sh\n'
+  exit 1
+fi
+if curl -sS -o /dev/null --max-time 2 "http://127.0.0.1:$PORT/" 2>/dev/null; then
+  printf '%s\n' "$(color '31' "  ✗ 端口 $PORT 被其他服务占用（响应：$(printf '%s' "$PORT_BODY" | head -c 80)）")"
+  printf '  换端口后重试：CC_TEST_PORT=18888 bash scripts/test-e2e.sh\n'
   exit 1
 fi
 
@@ -71,7 +90,14 @@ if [[ "$READY" != "1" ]]; then
   cat "$SERVER_LOG"
   exit 1
 fi
-echo "  服务已就绪 (pid $SERVER_PID)"
+# 二次确认监听者确实是本应用（而非抢占端口的其他进程）
+HEALTH="$(curl -sS --max-time 3 "http://127.0.0.1:$PORT/api/health" 2>/dev/null)"
+if ! printf '%s' "$HEALTH" | grep -q '"ok":true'; then
+  printf '%s\n' "$(color '31' '  端口上的服务不是本应用（可能被其他进程抢占）')"
+  printf '  响应：%s\n' "$(printf '%s' "$HEALTH" | head -c 160)"
+  exit 1
+fi
+echo "  服务已就绪 (pid $SERVER_PID) · v$(printf '%s' "$HEALTH" | jq -r '.version' 2>/dev/null) · $(printf '%s' "$HEALTH" | jq -r '.cigars' 2>/dev/null) 款雪茄"
 
 step "API 契约冒烟测试"
 SMOKE_OUT="$(bash "$ROOT/scripts/api-smoke.sh" "http://127.0.0.1:$PORT" 2>&1)"

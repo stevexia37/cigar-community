@@ -31,6 +31,9 @@ temp_*.sql.gz
 *.tmp
 *.bak
 
+# ---------- 开发辅助产物 ----------
+_shots/
+
 # ---------- 系统 ----------
 .DS_Store
 Thumbs.db

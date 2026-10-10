@@ -61,18 +61,36 @@ const FLAVOR_CN2EN = {
  * 并补上 CSV 里出现但 SIZES 未覆盖的长尺寸：Double Corona / Piramides / BHK 等）
  * 规则：先按环径区间，再看长度区间，命中即返回。
  */
+// 顺序即优先级。先判「窄区间」再判「宽区间」，否则宽松档会吞掉本该属于具体档的型号。
+// 实例：BHK 52 是 4.7" × 52 环（罗布图尺寸），若 belicoso [50-56]×[4.5-6.5] 排在前面
+// 就会把它误判成贝利科索 —— 这个顺序是踩过坑之后定下来的，勿随意调整。
 const VITOLA_FAMILIES = [
   { value: 'gordo',         label: '戈多',     rg: [56, 70], len: [4.5, 7.0] },
-  { value: 'belicoso',      label: '贝利科索', rg: [50, 56], len: [4.5, 6.5] },
-  { value: 'torpedo',       label: '鱼雷',     rg: [50, 58], len: [5.5, 7.0] },
   { value: 'double_corona', label: '双科罗娜', rg: [45, 55], len: [6.8, 8.5] },
-  { value: 'churchill',     label: '丘吉尔',   rg: [44, 52], len: [6.5, 7.5] },
   { value: 'lancero',       label: '长矛',     rg: [34, 42], len: [6.8, 8.5] },
+  { value: 'churchill',     label: '丘吉尔',   rg: [44, 52], len: [6.5, 7.5] },
   { value: 'panatela',      label: '巴纳特拉', rg: [34, 42], len: [5.5, 7.0] },
   { value: 'robusto',       label: '罗布图',   rg: [48, 54], len: [4.5, 5.6] },
-  { value: 'corona',        label: '科罗娜',   rg: [40, 46], len: [5.0, 6.2] },
   { value: 'petit_corona',  label: '小科罗娜', rg: [38, 46], len: [3.8, 5.0] },
+  { value: 'corona',        label: '科罗娜',   rg: [40, 46], len: [5.0, 6.2] },
+  { value: 'belicoso',      label: '贝利科索', rg: [50, 56], len: [4.5, 6.5] },
+  { value: 'torpedo',       label: '鱼雷',     rg: [50, 58], len: [5.5, 7.0] },
 ]
+
+/**
+ * 品牌名归一化：NFKC → 去变音符号 → 去除多余空白 → 小写。
+ * 用途：把 Padron / Padrón、Cohiba / COHIBA 这类写法差异归一到同一个键，
+ * 避免同一品牌被拆成多条、进而让同一支雪茄在库里出现两次。
+ */
+export function normalizeBrandName(name) {
+  return String(name ?? '')
+    .normalize('NFKC')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
 
 export function detectVitolaFamily(vitola, ringGauge, lengthInch) {
   const text = String(vitola || '').toLowerCase()
@@ -83,7 +101,11 @@ export function detectVitolaFamily(vitola, ringGauge, lengthInch) {
   if (text.includes('churchill')) return 'churchill'
   if (text.includes('torpedo') || text.includes('belicoso') || text.includes('piramide')) return 'belicoso'
   if (text.includes('lancero') || text.includes('longsdale')) return 'lancero'
-  if (text.includes('corona')) return text.includes('petit') || text.includes('petit') ? 'petit_corona' : 'corona'
+  if (text.includes('corona')) {
+    if (text.includes('double')) return 'double_corona'
+    if (text.includes('petit')) return 'petit_corona'
+    return 'corona'
+  }
   if (text.includes('gordo') || text.includes('60') || text.includes('56')) return 'gordo'
 
   const rg = Number(ringGauge)
@@ -109,7 +131,14 @@ export const FILTER_OPTIONS = {
 }
 
 // ---------------------------------------------------------------- CSV 解析
-/** 手写 RFC4180 子集解析：支持引号包裹、内嵌逗号/换行、"" 转义 */
+/**
+ * 手写 RFC4180 子集解析：支持引号包裹、内嵌逗号/换行、"" 转义。
+ *
+ * 额外容忍一种非规范写法：JSON 风格的 \" 转义。
+ * 上游 database/seed/cigars.csv 写的是 `打破了\"顶级雪茄必须用古巴烟叶\"的魔咒`，
+ * 而 RFC4180 规定字段内引号应写作 `""`。若不处理，反斜杠会作为可见字符进入描述文本
+ * （页面上会显示「打破了\顶级雪茄…」）。这里从容错角度修掉，不改动上游数据。
+ */
 export function parseCsv(text) {
   const rows = []
   let row = []
@@ -120,7 +149,10 @@ export function parseCsv(text) {
   for (let i = 0; i < src.length; i++) {
     const ch = src[i]
     if (inQuotes) {
-      if (ch === '"') {
+      if (ch === '\\' && src[i + 1] === '"') {
+        field += '"'      // 非规范的 \" → 一个普通引号
+        i++
+      } else if (ch === '"') {
         if (src[i + 1] === '"') { field += '"'; i++ }
         else inQuotes = false
       } else field += ch
@@ -187,21 +219,27 @@ export function seedDatabase({ reset = false, log = console } = {}) {
 
   transaction((conn) => {
     const insCountry = conn.prepare('INSERT OR IGNORE INTO countries (name, name_cn, code, is_cuban) VALUES (?,?,?,?)')
-    const insBrand = conn.prepare('INSERT OR IGNORE INTO brands (name, name_cn, country_id, description) VALUES (?,?,?,?)')
+    const insBrand = conn.prepare('INSERT OR IGNORE INTO brands (name, name_norm, name_cn, country_id, description) VALUES (?,?,?,?,?)')
     const getCountry = conn.prepare('SELECT id FROM countries WHERE code = ?')
-    const getBrand = conn.prepare('SELECT id FROM brands WHERE name = ?')
+    const getBrand = conn.prepare('SELECT id FROM brands WHERE name_norm = ?')
     const insCigar = conn.prepare(`
       INSERT INTO cigars (
         brand_id, series, vitola, vitola_family, length_inch, length_mm, ring_gauge,
         origin_type, country_id, wrapper_origin, wrapper_variety, binder_variety, filler_variety,
-        strength, description, price_cny, rating, review_count, data_source, status
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)
+        strength, description, price_cny, rating, base_rating, review_count, seed_review_count, data_source, status
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)
       ON CONFLICT(brand_id, COALESCE(series,''), vitola) DO UPDATE SET
         description = CASE WHEN length(excluded.description) > length(COALESCE(cigars.description,''))
                            THEN excluded.description ELSE cigars.description END,
-        rating = COALESCE(cigars.rating, excluded.rating),
+        -- 已有用户评分时不用种子值覆盖（两套量纲不同，见 base_rating 注释）
+        rating = CASE WHEN cigars.review_count > 0 THEN cigars.rating
+                      ELSE COALESCE(excluded.rating, cigars.rating) END,
+        base_rating = COALESCE(excluded.base_rating, cigars.base_rating),
         price_cny = COALESCE(cigars.price_cny, excluded.price_cny),
-        review_count = MAX(cigars.review_count, excluded.review_count),
+        seed_review_count = excluded.seed_review_count,
+        -- 没有真实用户笔记时，展示数回落为种子参考数（有真实笔记时由 recomputeCigarStats 接管）
+        review_count = CASE WHEN EXISTS (SELECT 1 FROM reviews WHERE cigar_id = cigars.id AND status = 1)
+                            THEN cigars.review_count ELSE excluded.seed_review_count END,
         data_source = CASE WHEN cigars.data_source = 'seed-csv' THEN 'seed-csv' ELSE excluded.data_source END,
         updated_at = ?
     `)
@@ -219,10 +257,17 @@ export function seedDatabase({ reset = false, log = console } = {}) {
     }
 
     const ensureBrand = (name, countryKey) => {
-      if (brandIds.has(name)) return brandIds.get(name)
-      insBrand.run(name, null, ensureCountry(countryKey), null)
-      const id = getBrand.get(name).id
-      brandIds.set(name, id)
+      const key = normalizeBrandName(name)
+      if (brandIds.has(key)) return brandIds.get(key)
+      // 归一化名已存在则复用，不再插入 —— 这是 Padron / Padrón 合并的关键
+      const existing = getBrand.get(key)
+      if (existing) {
+        brandIds.set(key, existing.id)
+        return existing.id
+      }
+      insBrand.run(name, key, null, ensureCountry(countryKey), null)
+      const id = getBrand.get(key).id
+      brandIds.set(key, id)
       stats.brands++
       return id
     }
@@ -251,7 +296,11 @@ export function seedDatabase({ reset = false, log = console } = {}) {
         row.countryKey === 'cuba' ? 'cuban' : 'non-cuban', countryId,
         row.wrapperOrigin ?? countryId, row.wrapper || null, row.binder || null, row.filler || null,
         row.strength ?? null, row.description || null,
-        row.price ?? null, row.rating ?? null, row.reviews ?? 0,
+        row.price ?? null,
+        row.rating ?? null,          // rating：当前展示评分
+        row.rating ?? null,          // base_rating：种子基准评分（用户评分出现后仍保留）
+        row.reviews ?? 0,            // review_count 初值＝种子参考数
+        row.reviews ?? 0,            // seed_review_count：种子参考数，不受用户笔记影响
         row.dataSource, nowIso(),
       )
       const cigarId = findCigar.get(brandId, row.series || null, row.vitola).id

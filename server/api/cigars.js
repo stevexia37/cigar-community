@@ -1,60 +1,70 @@
 import { Router, sendJson, notFound, badRequest } from '../lib/http.js'
 import { query, queryOne } from '../db/index.js'
+import { parsePagination, parseList, parseIntList, parseId, toFloat } from '../lib/query.js'
 import {
   buildCigarQuery, countCigars, flavorsByCigar, shapeCigar,
-  shapeReview, CATEGORY_LABELS,
+  shapeReview, CATEGORY_LABELS, originKeyFromCode,
 } from './shape.js'
 
 export const cigarRouter = new Router()
 
-const MAX_PAGE_SIZE = 60
-
-/** 逗号分隔的多值参数解析：?origin=cuba,nicaragua */
-function list(param) {
-  if (param === undefined || param === null || param === '') return []
-  const raw = Array.isArray(param) ? param : String(param).split(',')
-  return raw.map((s) => String(s).trim()).filter(Boolean)
-}
-
-function intList(param) {
-  return list(param).map((s) => Number(s)).filter((n) => Number.isFinite(n))
-}
-
-function paginate(q) {
-  const page = Math.max(1, Number(q.page) || 1)
-  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Number(q.pageSize) || 24))
-  return { page, pageSize, offset: (page - 1) * pageSize }
-}
+// 合法产地集合（与 seed 的 COUNTRY_INFO 一致）。
+// 早期实现把无法识别的 origin 静默丢弃，却仍在 applied 里回显原值，
+// 于是 ?origin=mars 返回全部条目 —— 用户看到「筛选生效」实际没有。现在显式报错。
+const VALID_ORIGINS = new Set([
+  'cuba', 'nicaragua', 'dominican', 'davidoff', 'honduras', 'usa',
+  'mexico', 'ecuador', 'brazil', 'cameroon', 'indonesia', 'philippines',
+])
 
 function parseFilters(q) {
+  const origins = parseList(q.origin)
+  const unknownOrigins = origins.filter((o) => !VALID_ORIGINS.has(o))
+  if (unknownOrigins.length) {
+    throw badRequest(
+      `未知产地：${unknownOrigins.join('、')}。可用值见 /api/meta 的 origins。`,
+      'UNKNOWN_ORIGIN',
+      { unknown: unknownOrigins, allowed: [...VALID_ORIGINS] },
+    )
+  }
+
+  let minRating = null
+  if (q.minRating !== undefined && q.minRating !== null && q.minRating !== '') {
+    minRating = toFloat(q.minRating)
+    if (minRating === null || minRating < 0 || minRating > 5) {
+      throw badRequest('minRating 必须是 0-5 之间的数字', 'INVALID_MIN_RATING')
+    }
+  }
+
   return {
     q: typeof q.q === 'string' ? q.q.trim().slice(0, 100) : '',
-    origins: list(q.origin),
-    sizes: list(q.size),
-    strengths: intList(q.strength).filter((n) => n >= 1 && n <= 5),
-    flavorIds: intList(q.flavor),
-    brandIds: intList(q.brand),
+    origins,
+    sizes: parseList(q.size),
+    strengths: parseIntList(q.strength).filter((n) => n >= 1 && n <= 5),
+    flavorIds: parseIntList(q.flavor),
+    brandIds: parseIntList(q.brand),
     sort: typeof q.sort === 'string' ? q.sort : 'rating',
-    minRating: q.minRating,
+    minRating,
   }
 }
 
 // ---------------------------------------------------------------- 列表
 cigarRouter.get('/cigars', async (req, res) => {
   const filters = parseFilters(req.query)
-  const { page, pageSize, offset } = paginate(req.query)
+  const { page, pageSize, offset } = parsePagination(req.query, { defaultPageSize: 24, maxPageSize: 60 })
 
   const total = countCigars(filters)
   const { sql, params } = buildCigarQuery(filters)
   const rows = query(`${sql} LIMIT ? OFFSET ?`, [...params, pageSize, offset])
   const flavorMap = flavorsByCigar(rows.map((r) => r.id))
 
+  const totalPages = Math.ceil(total / pageSize)
   sendJson(res, 200, {
     items: rows.map((r) => shapeCigar(r, flavorMap.get(r.id) || [])),
     total,
-    page,
+    // 请求了超出范围的页时，回显真实最大页而不是那个不存在的页号
+    page: Math.min(page, Math.max(1, totalPages)),
     pageSize,
-    totalPages: Math.ceil(total / pageSize),
+    totalPages,
     applied: {
       q: filters.q,
       origin: filters.origins,
@@ -89,8 +99,9 @@ cigarRouter.get('/flavors', async (req, res) => {
 
 // ---------------------------------------------------------------- 详情
 cigarRouter.get('/cigars/:id', async (req, res) => {
-  const id = Number(req.params.id)
-  if (!Number.isInteger(id) || id <= 0) throw badRequest('雪茄 ID 不合法')
+  const parsed = parseId(req.params.id, { name: '雪茄 ID' })
+  if (parsed === null || typeof parsed === 'object') throw badRequest('雪茄 ID 必须是正整数', 'INVALID_ID')
+  const id = parsed
 
   const row = queryOne(
     `SELECT c.*, b.name AS brand_name, co.code AS country_code, co.name_cn AS country_name_cn

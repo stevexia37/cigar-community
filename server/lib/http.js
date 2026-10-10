@@ -132,25 +132,42 @@ export function readRawBody(req, limit = MAX_BODY) {
   })
 }
 
-/** 解析请求体：JSON 优先，其次表单/纯文本 */
+/**
+ * 解析请求体。
+ *
+ * 只接受 application/json（以及 form-urlencoded）。
+ * 早期实现对未知 Content-Type 直接返回 `{ text: raw }`，于是 `text/plain` 携带 JSON
+ * 时字段全都读不到 —— 合规预检会「静默放行」一段实际违规的内容（等于对调用方撒谎）。
+ * 宁可明确 415，也不要返回一个看起来成功但没有字段的对象。
+ */
 export async function readBody(req) {
   const raw = await readRawBody(req)
   if (!raw) return {}
-  const ct = String(req.headers['content-type'] || '')
-  if (ct.includes('application/json')) {
-    if (raw.length > JSON_LIMIT) throw new HttpError(413, '内容过长', 'PAYLOAD_TOO_LARGE')
-    try {
-      const parsed = JSON.parse(raw)
-      if (parsed === null || typeof parsed !== 'object') throw new Error('not object')
-      return parsed
-    } catch {
-      throw badRequest('请求体不是合法 JSON', 'INVALID_JSON')
-    }
-  }
+  const ct = String(req.headers['content-type'] || '').toLowerCase()
+
   if (ct.includes('application/x-www-form-urlencoded')) {
     return Object.fromEntries(new URLSearchParams(raw))
   }
-  return { text: raw }
+
+  if (!ct.includes('application/json')) {
+    throw new HttpError(
+      415,
+      `不支持的 Content-Type：${ct || '(未提供)'}。请使用 application/json。`,
+      'UNSUPPORTED_MEDIA_TYPE',
+    )
+  }
+
+  if (raw.length > JSON_LIMIT) throw new HttpError(413, '内容过长', 'PAYLOAD_TOO_LARGE')
+  let parsed
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    throw badRequest('请求体不是合法 JSON', 'INVALID_JSON')
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw badRequest('请求体必须是 JSON 对象', 'INVALID_JSON')
+  }
+  return parsed
 }
 
 export function sendJson(res, status, obj) {

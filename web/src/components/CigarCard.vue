@@ -68,7 +68,11 @@
       <span
         v-if="cigar.reviewCount"
         class="text-[11px] text-cigar-smoke"
-      >{{ cigar.reviewCount }} 篇笔记</span>
+        :title="isSeedOnly ? '参考数据：来自资料整理的品鉴条目数，非本站用户产出' : '本站用户品吸笔记数'"
+      >
+        <span v-if="isSeedOnly" class="opacity-70">参考 {{ cigar.reviewCount }}</span>
+        <span v-else>{{ cigar.reviewCount }} 篇笔记</span>
+      </span>
     </div>
   </router-link>
 </template>
@@ -130,6 +134,17 @@ const visibleFlavors = computed(() => flavors.value.slice(0, 4))
 const extraFlavorCount = computed(() => Math.max(0, flavors.value.length - 4))
 
 const hasPrice = computed(() => props.cigar.priceCny !== null && props.cigar.priceCny !== undefined)
+
+/**
+ * 笔记数是否全部来自种子参考数据。
+ * 原型数据里带的「128 篇笔记」是资料整理的数字，不是本站用户产出，
+ * 直接显示成用户笔记会误导访客，因此标注为「参考」。
+ */
+const isSeedOnly = computed(() => {
+  const seed = props.cigar.seedReviewCount ?? 0
+  return seed > 0 && seed === (props.cigar.reviewCount ?? 0)
+})
+
 const priceText = computed(() => {
   const n = Number(props.cigar.priceCny)
   if (!Number.isFinite(n)) return ''

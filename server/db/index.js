@@ -22,7 +22,18 @@ function migrate(conn) {
   if (addIfMissing('cigars', 'review_count', 'INTEGER NOT NULL DEFAULT 0')) changed++
   if (addIfMissing('cigars', 'vitola_family', 'TEXT')) changed++
   if (addIfMissing('cigars', 'data_source', "TEXT NOT NULL DEFAULT 'manual'")) changed++
-  if (changed) console.log(`[db] 已迁移旧库，补充 ${changed} 个列`)
+  if (addIfMissing('cigars', 'base_rating', 'REAL')) changed++
+  if (addIfMissing('cigars', 'seed_review_count', 'INTEGER NOT NULL DEFAULT 0')) changed++
+  if (addIfMissing('brands', 'name_norm', 'TEXT')) changed++
+  // 旧库若已把 1-10 分的笔记均分写进了 1-5 星的 rating，这里一次性清理：
+  // 超界值说明量纲被污染，回落到 base_rating（没有则置空由下次 recompute 修正）
+  const polluted = conn.prepare('SELECT COUNT(*) AS n FROM cigars WHERE rating > 5 OR rating < 1').get().n
+  if (polluted > 0) {
+    conn.exec('UPDATE cigars SET rating = base_rating, review_count = seed_review_count WHERE rating > 5 OR rating < 1')
+    console.log(`[db] 修正 ${polluted} 条被污染的评分（1-10 量纲误写入 1-5 星级）`)
+    changed++
+  }
+  if (changed) console.log(`[db] 已迁移旧库，补充 ${changed} 项`)
 }
 
 /** 打开（并在首次调用时初始化）数据库 */

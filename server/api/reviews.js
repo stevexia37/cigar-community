@@ -1,5 +1,6 @@
 import { Router, sendJson, badRequest, notFound, HttpError } from '../lib/http.js'
 import { query, queryOne, run, transaction, nowIso } from '../db/index.js'
+import { parsePagination, parseId } from '../lib/query.js'
 import { scan } from '../lib/sensitive.js'
 import { requireAuth } from '../middleware/auth.js'
 import { shapeReview } from './shape.js'
@@ -14,12 +15,6 @@ const SELECT_REVIEW = `
   JOIN cigars c ON c.id = r.cigar_id
   JOIN brands b ON b.id = c.brand_id
 `
-
-function paginate(q) {
-  const page = Math.max(1, Number(q.page) || 1)
-  const pageSize = Math.min(60, Math.max(1, Number(q.pageSize) || 12))
-  return { page, pageSize, offset: (page - 1) * pageSize }
-}
 
 /** 1-10 分校验：允许 null，越界直接 400 */
 function score(value, name) {
@@ -57,32 +52,51 @@ function logSensitivity(userId, kind, refId, result, text) {
   )
 }
 
-/** 重新计算某支雪茄的已发布笔记数与平均分 */
+/**
+ * 重新计算某支雪茄的展示评分。
+ *
+ * ⚠️ 量纲转换（踩过的坑）：用户笔记打的是 1-10 分，而雪茄的 `rating` 是 1-5 星。
+ * 早期版本直接把 1-10 的均分写进 rating，导致出现「8.0 星」这种离谱数据。
+ * 这里统一换算到 5 分制；没有已发布笔记时回落到种子基准分 `base_rating`。
+ */
 function recomputeCigarStats(cigarId) {
   const row = queryOne(
     `SELECT COUNT(*) AS n, AVG(overall_rating) AS avg_rating
      FROM reviews WHERE cigar_id = ? AND status = 1`,
     [cigarId],
   )
+  const count = row?.n ?? 0
+
+  let rating
+  if (count > 0 && row.avg_rating != null) {
+    // 1-10 → 1-5，保留一位小数
+    rating = Math.round((row.avg_rating / 2) * 10) / 10
+  } else {
+    const current = queryOne('SELECT base_rating FROM cigars WHERE id = ?', [cigarId])
+    rating = current?.base_rating ?? null
+  }
+
   run(
-    'UPDATE cigars SET review_count = ?, rating = COALESCE(?, rating), updated_at = ? WHERE id = ?',
-    [row?.n ?? 0, row?.avg_rating != null ? Math.round(row.avg_rating * 10) / 10 : null, nowIso(), cigarId],
+    'UPDATE cigars SET review_count = ?, rating = ?, updated_at = ? WHERE id = ?',
+    [count, rating, nowIso(), cigarId],
   )
 }
 
 // ---------------------------------------------------------------- 列表
 reviewRouter.get('/reviews', async (req, res) => {
-  const { page, pageSize, offset } = paginate(req.query)
+  const { page, pageSize, offset } = parsePagination(req.query, { defaultPageSize: 12, maxPageSize: 60 })
   const where = ['r.status = 1']
   const params = []
 
-  if (req.query.cigarId) {
-    where.push('r.cigar_id = ?')
-    params.push(Number(req.query.cigarId))
-  }
-  if (req.query.userId) {
-    where.push('r.user_id = ?')
-    params.push(Number(req.query.userId))
+  // 非法 ID 必须报错而不是静默返回空列表（否则前端分不清「没有数据」与「参数写错」）
+  for (const [param, column] of [['cigarId', 'r.cigar_id'], ['userId', 'r.user_id']]) {
+    if (req.query[param] === undefined || req.query[param] === '') continue
+    const parsed = parseId(req.query[param], { name: param })
+    if (parsed === null || typeof parsed === 'object') {
+      throw badRequest(`${param} 必须是正整数`, 'INVALID_ID')
+    }
+    where.push(`${column} = ?`)
+    params.push(parsed)
   }
 
   const ORDER = {
@@ -107,12 +121,13 @@ reviewRouter.get('/reviews', async (req, res) => {
     for (const v of voted) helpfulSet.add(v.review_id)
   }
 
+  const totalPages = Math.ceil(total / pageSize)
   sendJson(res, 200, {
     items: rows.map((r) => shapeReview(r, req.user?.id ?? null, helpfulSet.has(r.id))),
     total,
-    page,
+    page: Math.min(page, Math.max(1, totalPages)),
     pageSize,
-    totalPages: Math.ceil(total / pageSize),
+    totalPages,
   })
 })
 
@@ -179,6 +194,8 @@ reviewRouter.post('/reviews', async (req, res) => {
   if (status === -1) {
     // 命中审核词：内容已入库但不公开，返回 202
     sendJson(res, 202, {
+      // 契约要求：非 2xx… 但 202 是成功语义，仍带上 code 以便客户端统一判断
+      code: 'CONTENT_QUEUED',
       review: shapeReview(row, user.id, false),
       sensitivity: { action: sensitivity.action, matched: sensitivity.matched, message: sensitivity.message },
     })
@@ -194,8 +211,9 @@ reviewRouter.post('/reviews', async (req, res) => {
 // ---------------------------------------------------------------- 有用投票
 reviewRouter.post('/reviews/:id/helpful', async (req, res) => {
   const user = requireAuth(req)
-  const id = Number(req.params.id)
-  if (!Number.isInteger(id) || id <= 0) throw badRequest('笔记 ID 不合法')
+  const parsedId = parseId(req.params.id, { name: '笔记 ID' })
+  if (parsedId === null || typeof parsedId === 'object') throw badRequest('笔记 ID 必须是正整数', 'INVALID_ID')
+  const id = parsedId
 
   const review = queryOne('SELECT id, user_id, status FROM reviews WHERE id = ?', [id])
   if (!review || review.status !== 1) throw notFound('笔记不存在')

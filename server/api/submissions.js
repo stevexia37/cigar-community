@@ -81,6 +81,7 @@ submissionRouter.post('/submissions', async (req, res) => {
   )
 
   sendJson(res, 202, {
+    code: 'CONTENT_QUEUED',
     submission: { id, status: 'pending', createdAt: ts },
     sensitivity: { action: sensitivity.action, matched: sensitivity.matched, message: sensitivity.message },
   })

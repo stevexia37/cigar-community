@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="雪茄客">
+  <defs>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8b5e3c"/>
+      <stop offset="100%" stop-color="#5c3a22"/>
+    </linearGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e0c063"/>
+      <stop offset="100%" stop-color="#b8922e"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#1a1410"/>
+  <!-- 茄身 -->
+  <rect x="12" y="26" width="34" height="12" rx="6" fill="url(#leaf)"/>
+  <!-- 茄帽（点燃端） -->
+  <rect x="43" y="26" width="9" height="12" rx="3" fill="#3d3428"/>
+  <circle cx="54" cy="32" r="3.4" fill="#c9a84c"/>
+  <!-- 茄标 -->
+  <rect x="22" y="24.5" width="9" height="15" rx="2" fill="url(#band)"/>
+  <rect x="24.6" y="27" width="3.8" height="10" rx="1" fill="#1a1410" opacity="0.55"/>
+  <!-- 烟雾 -->
+  <path d="M57 22c3-2 1.5-5-1-5.5 3-1 4-4 1.5-6" fill="none" stroke="#e8dcc8"
+        stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+</svg>

@@ -41,32 +41,39 @@ export function destroySession(req, res) {
   clearCookie(res, SESSION_COOKIE, cookieOpts())
 }
 
-/** 读取当前登录用户；会话过期即失效并清理。返回 null 表示未登录。 */
+/**
+ * 读取当前登录用户；会话过期即失效并清理。返回 null 表示未登录。
+ *
+ * ⚠️ 列别名必须唯一：早期写成 `s.id AS sid, u.id, …`，而 node:sqlite 对重名列
+ * 只保留最后一个，导致 `row.id` 拿到的是**会话 id**、`row.sid` 也可能串到用户 id。
+ * 症状极其隐蔽：改口令时 `DELETE … AND id != user.sessionId` 删掉的是当前会话，
+ * 真正该踢掉的会话反而留着。所以这里把两边都显式起名。
+ */
 export function readSession(req) {
   const token = getCookie(req, SESSION_COOKIE)
   if (!token) return null
   const row = queryOne(
-    `SELECT s.id AS sid, s.expires_at,
-            u.id, u.username, u.email, u.role, u.avatar_url, u.bio, u.status, u.created_at
+    `SELECT s.id AS session_id, s.expires_at,
+            u.id AS user_id, u.username, u.email, u.role, u.avatar_url, u.bio, u.status, u.created_at
      FROM sessions s JOIN users u ON u.id = s.user_id
      WHERE s.id = ?`,
     [sha256(token)],
   )
   if (!row) return null
   if (row.expires_at < nowIso()) {
-    run('DELETE FROM sessions WHERE id = ?', [row.sid])
+    run('DELETE FROM sessions WHERE id = ?', [row.session_id])
     return null
   }
   if (row.status !== 1) return null
   return {
-    id: row.id,
+    id: row.user_id,
     username: row.username,
     email: row.email,
     role: row.role,
     avatarUrl: row.avatar_url,
     bio: row.bio,
     createdAt: row.created_at,
-    sessionId: row.sid,
+    sessionId: row.session_id,
   }
 }
 
