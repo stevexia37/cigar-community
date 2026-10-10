@@ -230,6 +230,102 @@ else
   warn "未发现备份目录" "上线前请执行 bash scripts/backup-db.sh"
 fi
 
+# ---------------------------------------------------------------- 部署物一致性
+# 这一组是「不启动服务也能查」的静态核对，专门覆盖本地没有 Docker 时
+# 最容易漏掉的问题：镜像构建出来的东西跑不起来。
+grp "部署物（Docker / CI）"
+
+if [[ -f "$ROOT_DIR/Dockerfile" ]]; then
+  ok "Dockerfile 存在"
+
+  # 运行期真正需要读取的文件必须被 COPY 覆盖，否则镜像起来就崩
+  MISSING_COPY=()
+  for need in server scripts database config content package.json; do
+    grep -qE "^COPY +$need/?" "$ROOT_DIR/Dockerfile" || MISSING_COPY+=("$need")
+  done
+  if [[ ${#MISSING_COPY[@]} -eq 0 ]]; then
+    ok "运行期所需目录都已 COPY 进镜像"
+  else
+    fail "镜像缺少运行期文件" "未 COPY：${MISSING_COPY[*]}"
+  fi
+
+  # 种子数据与 schema 是「首次启动自动建库」的前提，必须随镜像发布
+  for f in database/schema.sqlite.sql database/seed/cigars.csv database/seed/mock-cigars.json; do
+    if [[ -f "$ROOT_DIR/$f" ]]; then
+      top="$(printf '%s' "$f" | cut -d/ -f1)"
+      if grep -qE "^COPY +$top/" "$ROOT_DIR/Dockerfile"; then
+        ok "种子依赖随镜像发布：$f"
+      else
+        fail "镜像缺少种子依赖" "$f 未被 COPY"
+      fi
+    else
+      fail "种子文件缺失" "$f 不存在，首次启动无法建库"
+    fi
+  done
+
+  # 本地开发库绝不能进镜像
+  if grep -qE '^database/\*\.db' "$ROOT_DIR/.dockerignore" 2>/dev/null; then
+    ok ".dockerignore 排除本地开发库（不会把数据烤进镜像）"
+  else
+    warn "未排除本地数据库" ".dockerignore 应含 database/*.db，否则本地数据会被打进镜像"
+  fi
+
+  # 数据必须落在可挂载的卷上，否则容器重建即丢库
+  if grep -qE 'CC_DB_PATH=/data|CC_DB_PATH.*=/data' "$ROOT_DIR/Dockerfile"; then
+    ok "数据库默认路径在 /data（可挂卷持久化）"
+  else
+    warn "数据库路径未指向卷" "容器重建会丢数据，建议 CC_DB_PATH=/data/cigar.db"
+  fi
+
+  # 健康检查要走应用接口，而不是只看端口
+  if grep -q 'HEALTHCHECK' "$ROOT_DIR/Dockerfile"; then
+    if grep -A3 'HEALTHCHECK' "$ROOT_DIR/Dockerfile" | grep -q '/api/health'; then
+      ok "健康检查调用 /api/health（会真的查一次数据库）"
+    else
+      warn "健康检查未走应用接口" "建议探测 /api/health，端口可监听但不代表能服务"
+    fi
+  else
+    fail "镜像缺少 HEALTHCHECK" "编排系统无法判断服务是否真的可用"
+  fi
+
+  # 非 root 运行
+  if grep -qE '^USER +node' "$ROOT_DIR/Dockerfile"; then
+    ok "容器以非 root 用户运行"
+  else
+    warn "容器以 root 运行" "建议加 USER node"
+  fi
+else
+  warn "未发现 Dockerfile" "若不需要容器部署可忽略"
+fi
+
+if [[ -f "$ROOT_DIR/.github/workflows/ci.yml" ]]; then
+  ok "CI 工作流存在"
+  # CI 里引用的 npm 脚本必须真实存在，否则 CI 会在第一步就失败
+  CI_MISSING=()
+  for sc in $(grep -oE 'npm run [a-zA-Z0-9:_-]+' "$ROOT_DIR/.github/workflows/ci.yml" | awk '{print $3}' | sort -u); do
+    grep -q "\"$sc\":" "$ROOT_DIR/package.json" || CI_MISSING+=("$sc")
+  done
+  if [[ ${#CI_MISSING[@]} -eq 0 ]]; then
+    ok "CI 引用的 npm 脚本均存在"
+  else
+    fail "CI 引用了不存在的脚本" "${CI_MISSING[*]}"
+  fi
+
+  # CI 的 Node 版本必须 >= engines 下限，否则测的不是「最低支持版本」
+  ENGINES_MIN="$(jq -r '.engines.node // ""' "$ROOT_DIR/package.json" 2>/dev/null | tr -d '>= ')"
+  CI_NODE="$(grep -A3 'setup-node' "$ROOT_DIR/.github/workflows/ci.yml" | grep -oE "node-version: *'[^']+'" | head -1 | grep -oE "[0-9.]+")"
+  if [[ -n "$ENGINES_MIN" && -n "$CI_NODE" ]]; then
+    LOWEST="$(printf '%s\n%s\n' "$ENGINES_MIN" "$CI_NODE" | sort -V | head -1)"
+    if [[ "$LOWEST" == "$CI_NODE" ]]; then
+      ok "CI 的 Node 版本（$CI_NODE）不高于 engines 下限（$ENGINES_MIN）"
+    else
+      warn "CI Node 高于最低支持版本" "CI=$CI_NODE，engines=$ENGINES_MIN；跑在下限上才能验证最低版本可用"
+    fi
+  fi
+else
+  warn "未发现 CI 工作流" "建议配置 .github/workflows/ci.yml 自动跑测试"
+fi
+
 # ---------------------------------------------------------------- 汇总
 printf '\n%s\n' "$(c '1;36' '────────────────────────────────────')"
 printf '  通过 %s · 警告 %s · 失败 %s\n' "$(c 32 "$PASS")" "$(c 33 "$WARN")" "$(c $([[ $FAIL -gt 0 ]] && echo 31 || echo 32) "$FAIL")"
