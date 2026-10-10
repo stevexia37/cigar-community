@@ -120,7 +120,7 @@
               hint="可选，最多 6 张"
               tip="图片只用于展示养护环境与茄身细节。请勿上传任何联系方式、二维码或交易信息截图。"
               :notice="uploadNotice"
-              :max-count="uploader.maxCount"
+              :max-count="uploader.maxCount.value"
               @pick="onPickImages"
               @remove="uploader.remove"
             />
@@ -194,7 +194,8 @@ const searching = ref(false)
 const searchError = ref('')
 let searchTimer = null
 
-const uploader = useImageUpload({ maxCount: 6 })
+// 不写死 maxCount：由 composable 默认值 + /api/uploads/limits 下发决定
+const uploader = useImageUpload()
 const uploadNotice = ref('')
 
 async function onPickImages(files) {

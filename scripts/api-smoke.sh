@@ -679,6 +679,12 @@ group "13 图片上传（格式校验 / 鉴权 / 配图落库）"
 request GET /api/uploads/limits
 expect_status "图片限制可读（供前端对齐压缩参数）" 200
 expect_json   "限制含单张字节上限" '(.maxBytes > 0)' 'true'
+expect_json   "下发了前端压缩目标（最长边）" '(.targetMaxEdge > 0)' 'true'
+expect_json   "下发了前端压缩目标（质量）" '(.targetQuality > 0)' 'true'
+# 单条最多几张必须由服务端下发 —— 前端曾把它硬编码成 6，
+# 而服务端也硬编码在 slice(0,6)，两边各写一份，改一处就会不一致
+expect_json   "下发了单条最多几张" '(.maxPerReview > 0)' 'true'
+expect_json   "限制里含允许的 MIME 类型" '(.allowed | length > 0)' 'true'
 
 # 未登录必须拒绝（用独立临时 jar，避免污染共享会话 jar —— 这里曾踩过坑：
 # 不带 -b/-c 的请求与 $JAR 是两个不同的会话，导致后续断言全部误报 401）
@@ -720,6 +726,15 @@ else bad "图片静态访问" "$UPLOAD_URL 返回 $IMG_CODE"; fi
 # 内容寻址：同图重复上传应复用同一地址
 request POST /api/uploads "{\"data\":\"data:image/png;base64,$REAL_PNG\"}"
 expect_json "同图重复上传复用同一地址（内容寻址）" '.image.url' "$UPLOAD_URL"
+
+# 图片数量超限必须截断到 maxPerReview（与限制接口同源），而不是静默丢弃或报错
+LIMIT_N="$(curl -sS "$BASE/api/uploads/limits" | jq -r '.maxPerReview')"
+OVER_JSON="$(node -e "
+const n=Number('$LIMIT_N')+2;
+console.log(JSON.stringify(Array.from({length:n},()=>'$UPLOAD_URL')))")"
+request POST /api/reviews "{\"cigarId\":1,\"content\":\"验证配图数量超限时的截断行为。\",\"overallRating\":8,\"images\":$OVER_JSON}"
+expect_status "超量配图的笔记仍创建成功" 201
+expect_json   "配图被截断到服务端声明的上限" '(.review.images | length)' "$LIMIT_N"
 
 # 带图发笔记 → 配图必须落库并随笔记返回
 request POST /api/reviews "{\"cigarId\":1,\"content\":\"带配图的笔记内容，用于验证配图链路。\",\"overallRating\":8,\"images\":[\"$UPLOAD_URL\",{\"url\":\"$UPLOAD_URL\",\"description\":\"养护环境\"}]}"

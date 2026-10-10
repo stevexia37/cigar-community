@@ -143,8 +143,10 @@ miscRouter.get('/uploads/limits', async (req, res) => {
     maxBytes: IMAGE_LIMITS.maxBytes,
     maxBytesGif: IMAGE_LIMITS.maxBytesGif,
     allowed: IMAGE_LIMITS.allowed,
-    // 前端压缩目标，服务端与前端保持一致
+    // 前端压缩目标：由服务端下发，前端不再硬编码（服务端是唯一权威来源）
     targetMaxEdge: 1600,
     targetQuality: 0.82,
+    // 单条笔记最多几张，与 reviews.js 的校验共用同一常量
+    maxPerReview: IMAGE_LIMITS.maxPerReview,
   })
 })

@@ -140,6 +140,18 @@ export function readImage(filename) {
   return { path: filePath, size: statSync(filePath).size }
 }
 
-export const IMAGE_LIMITS = { maxBytes: MAX_BYTES, maxBytesGif: MAX_BYTES_GIF, allowed: Object.keys(ALLOWED) }
+/**
+ * 单条笔记最多几张配图。
+ * 提到这里是为了让「服务端校验」与「前端压缩目标」共用一个来源：
+ * 原本 6 硬编码在 reviews.js 的 slice(0,6) 与前端默认值里，改一处会漏另一处。
+ */
+export const MAX_IMAGES_PER_REVIEW = 6
+
+export const IMAGE_LIMITS = {
+  maxBytes: MAX_BYTES,
+  maxBytesGif: MAX_BYTES_GIF,
+  allowed: Object.keys(ALLOWED),
+  maxPerReview: MAX_IMAGES_PER_REVIEW,
+}
 
 void readFileSync

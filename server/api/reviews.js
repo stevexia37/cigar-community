@@ -4,7 +4,7 @@ import { parsePagination, parseId } from '../lib/query.js'
 import { scan } from '../lib/sensitive.js'
 import { requireAuth } from '../middleware/auth.js'
 import { shapeReview, imagesByReview } from './shape.js'
-import { saveImage } from '../lib/storage.js'
+import { saveImage, MAX_IMAGES_PER_REVIEW } from '../lib/storage.js'
 
 export const reviewRouter = new Router()
 
@@ -163,7 +163,7 @@ reviewRouter.post('/reviews', async (req, res) => {
   }
 
   // 配图：最多 6 张。data: 开头的是新上传（需落盘），/uploads/ 开头的是已存 URL（复用）
-  const rawImages = Array.isArray(body.images) ? body.images.slice(0, 6) : []
+  const rawImages = Array.isArray(body.images) ? body.images.slice(0, MAX_IMAGES_PER_REVIEW) : []
   const images = []
   for (const item of rawImages) {
     // 允许直接传字符串，也允许传 { data, description }

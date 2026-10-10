@@ -1,5 +1,15 @@
 import { ref } from 'vue'
 import api from '@/api/client.js'
+import { pickImageFiles } from './imageFiles.js'
+
+/**
+ * 服务端图片限制的模块级缓存。
+ *
+ * 放在模块级而不是每个 composable 实例里：同一页面可能有多个上传组件
+ * （笔记表单、未来可能的评论配图），没必要每个实例都打一次同样的接口。
+ * 缓存失败不写入，下次调用会重试。
+ */
+let limitsCache = null
 
 /**
  * 图片选择 → 浏览器端压缩 → 上传/或随笔记一起提交。
@@ -16,7 +26,54 @@ import api from '@/api/client.js'
  */
 export function useImageUpload({ maxEdge = 1600, quality = 0.82, maxCount = 6 } = {}) {
   const images = ref([])        // [{ id, dataUrl, url, name, size, uploading, error }]
+
+  // ⚠️ 这三个必须放在 ref 里，不能直接用函数参数的常量。
+  // 之前 `maxEdge` 是解构出来的常量，loadLimits 拿到的服务端参数无处安放，
+  // 结果 `/api/uploads/limits` 这个接口形同虚设（服务端改了前端不跟），
+  // 而且 `void limitsLoading` 这种写法把「没接线」这件事掩盖了过去。
+  const maxEdgeRef = ref(maxEdge)
+  const qualityRef = ref(quality)
+  const maxCountRef = ref(maxCount)
   const limitsLoading = ref(false)
+  const limitsLoaded = ref(Boolean(limitsCache))
+  const limitsError = ref('')
+  if (limitsCache) {
+    maxEdgeRef.value = limitsCache.targetMaxEdge
+    qualityRef.value = limitsCache.targetQuality
+    maxCountRef.value = limitsCache.maxPerReview
+  }
+
+  /**
+   * 拉取服务端的图片限制，覆盖本地默认值。
+   *
+   * 为什么要拉：压缩目标（最长边/质量）、单张字节上限、单条最多几张，
+   * 这三件事都必须与服务端一致 —— 前端压过头会浪费画质，压不够会被服务端 413 拒绝。
+   * 服务端是唯一权威来源，前端只做默认兜底。
+   */
+  async function loadLimits() {
+    if (limitsLoaded.value || limitsLoading.value) return
+    limitsLoading.value = true
+    limitsError.value = ''
+    try {
+      const r = await api.uploadLimits()
+      if (!r) return
+      const next = {
+        targetMaxEdge: Number.isFinite(r.targetMaxEdge) && r.targetMaxEdge > 0 ? r.targetMaxEdge : maxEdgeRef.value,
+        targetQuality: Number.isFinite(r.targetQuality) && r.targetQuality > 0 ? r.targetQuality : qualityRef.value,
+        maxPerReview: Number.isFinite(r.maxPerReview) && r.maxPerReview > 0 ? r.maxPerReview : maxCountRef.value,
+      }
+      maxEdgeRef.value = next.targetMaxEdge
+      qualityRef.value = next.targetQuality
+      maxCountRef.value = next.maxPerReview
+      limitsCache = next
+      limitsLoaded.value = true
+    } catch (err) {
+      // 拿不到就用本地默认值继续，不阻断上传 —— 限制不一致的后果由服务端兜底
+      limitsError.value = err?.message || '无法获取上传限制'
+    } finally {
+      limitsLoading.value = false
+    }
+  }
 
   /** 压缩单张 File → dataURL */
   function compress(file) {
@@ -31,7 +88,7 @@ export function useImageUpload({ maxEdge = 1600, quality = 0.82, maxCount = 6 } 
         const img = new Image()
         img.onerror = () => reject(new Error('图片解码失败，可能已损坏'))
         img.onload = () => {
-          const scale = Math.min(1, maxEdge / Math.max(img.width, img.height))
+          const scale = Math.min(1, maxEdgeRef.value / Math.max(img.width, img.height))
           const w = Math.max(1, Math.round(img.width * scale))
           const h = Math.max(1, Math.round(img.height * scale))
 
@@ -44,7 +101,7 @@ export function useImageUpload({ maxEdge = 1600, quality = 0.82, maxCount = 6 } 
           ctx.fillRect(0, 0, w, h)
           ctx.drawImage(img, 0, 0, w, h)
 
-          const out = canvas.toDataURL('image/jpeg', quality)
+          const out = canvas.toDataURL('image/jpeg', qualityRef.value)
           resolve({ dataUrl: out, width: w, height: h, original: img.width + '×' + img.height })
         }
         img.src = reader.result
@@ -62,8 +119,10 @@ export function useImageUpload({ maxEdge = 1600, quality = 0.82, maxCount = 6 } 
    * （本项目在实现图片上传时正是踩了这个坑，表现为缩略图永不出现且无报错）。
    */
   async function addFiles(fileList) {
-    const files = Array.from(fileList ?? []).filter((f) => f && f.type && f.type.startsWith('image/'))
-    const room = Math.max(0, maxCount - images.value.length)
+    // 首次使用时拉一次服务端限制（失败则用本地默认值，不阻断）
+    await loadLimits()
+    const files = pickImageFiles(fileList)
+    const room = Math.max(0, maxCountRef.value - images.value.length)
     const accepted = files.slice(0, room)
     const rejected = files.length - accepted.length
 
@@ -84,7 +143,7 @@ export function useImageUpload({ maxEdge = 1600, quality = 0.82, maxCount = 6 } 
     // 一次性推入：此时每个对象已是最终状态
     images.value = [...images.value, ...settled]
 
-    return rejected > 0 ? `最多 ${maxCount} 张，已忽略 ${rejected} 张` : ''
+    return rejected > 0 ? `最多 ${maxCountRef.value} 张，已忽略 ${rejected} 张` : ''
   }
 
   /** 立即上传拿 URL（可选路径；不调用也能随笔记一起提交 dataURL） */
@@ -123,6 +182,10 @@ export function useImageUpload({ maxEdge = 1600, quality = 0.82, maxCount = 6 } 
   const hasUploading = () => images.value.some((i) => i.compressing || i.uploading)
   const hasError = () => images.value.some((i) => i.error)
 
-  void limitsLoading
-  return { images, compress, addFiles, uploadAll, remove, clear, toPayload, hasUploading, hasError, maxCount }
+  return {
+    images, compress, addFiles, uploadAll, remove, clear, toPayload, hasUploading, hasError,
+    // 限制相关的真实状态（组件可据此显示「最多 N 张」而不是写死）
+    loadLimits, limitsLoading, limitsLoaded, limitsError,
+    maxCount: maxCountRef, maxEdge: maxEdgeRef, quality: qualityRef,
+  }
 }

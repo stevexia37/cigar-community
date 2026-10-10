@@ -87,15 +87,21 @@ const fileInput = ref(null)
 const full = computed(() => props.images.length >= props.maxCount)
 
 function onPick(e) {
-  const files = e.target.files
-  if (files?.length) emit('pick', files)
+  // ⚠️ 必须先快照成数组再 emit。
+  // `e.target.files` 是**活的 FileList**：下面的 `input.value = ''` 会立刻清空它。
+  // 旧代码没有 await，消费者在同一个 tick 内 Array.from 完就没事；一旦消费者
+  // 在读取前先 await（例如等 /api/uploads/limits），拿到手的就已经是空列表了 ——
+  // 这个 bug 真实发生过：加了限制拉取后，选图变成「无反应且无报错」。
+  const files = Array.from(e.target.files ?? [])
+  if (files.length) emit('pick', files)
   // 清空 value，否则同一张图连续选两次不会触发 change
   if (fileInput.value) fileInput.value.value = ''
 }
 
 function onDrop(e) {
   if (full.value) return
-  const files = e.dataTransfer?.files
+  // 同样要快照：dataTransfer.files 也是活的 FileList
+  const files = Array.from(e.dataTransfer?.files ?? [])
   if (files?.length) emit('pick', files)
 }
 </script>
