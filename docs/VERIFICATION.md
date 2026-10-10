@@ -519,29 +519,31 @@ npm run preflight     → 35 通过 / 0 失败 / 1 警告（仅「未找到 .env
 
 ## 轻微问题 / 建议
 
-1. **`POST /api/auth/password` 已实现但未进契约**（`server/api/auth.js:89`）：`docs/API.md §8` 的表格只有
+1. ~~**`POST /api/auth/password` 已实现但未进契约**~~（`server/api/auth.js:89`）：`docs/API.md §8` 的表格只有
    register/login/logout/me 四行，没有它。契约是「前后端唯一依据」，实现有而文档无属违规。
    另外该接口返回 `{ok:true}` 与 `401 UNAUTHORIZED`（当前口令错误用 401，语义上更像 403/400）。
-2. **`user` 结构多出 `email`**：契约给的 user 结构是 `{id,username,role,avatarUrl,bio,createdAt}`，
+    **已修**：`POST /api/auth/password` 已写入 `docs/API.md §8.1.1`，含错误码与「改口令撤销其它会话」的语义说明。
+2. ~~**`user` 结构多出 `email`**~~：契约给的 user 结构是 `{id,username,role,avatarUrl,bio,createdAt}`，
    实现（`publicUser()`）额外返回 `email`。前端未使用，但契约应对齐。
+    **已修**：`email` 已在 `docs/API.md` 的 user 结构中声明（第 367 行）；公开的用户主页接口 `GET /api/users/:id` 有意不返回它。
 3. **大量未文档化的额外响应字段**（详见「文档与实现不符」章节）。
-4. **作者可以给自己的品吸笔记投「有用」票**：实测作者投票后 `helpfulCount` 正常 +1。无越权（不能刷他人票、
+4. ~~**作者可以给自己的品吸笔记投「有用」票**~~：实测作者投票后 `helpfulCount` 正常 +1。无越权（不能刷他人票、
    计数由真实票数推导、重复投票幂等），但自刷排行不干净。建议 `if (review.user_id === user.id) throw forbidden()`。
-5. **`q` 的 LIKE 通配符未转义**：`?q=%` 与 `?q=_` 均返回 `total=42`（匹配全部）。搜索 `_` 应无结果。
+    **已修**：作者自投被拒（`403 SELF_VOTE_NOT_ALLOWED`）；冒烟断言改为「他人投票成功 + 作者自投被拒 + 自投不改变计数」。
+5. ~~**`q` 的 LIKE 通配符未转义**~~（**已修**：`escapeLike()` 转义 `\ % _` 并显式 `ESCAPE '\\'`；`?q=%` 从「匹配全部 380 条」变为 0 条，正常搜索与风味搜索不受影响。配套断言 4 项）：`?q=%` 与 `?q=_` 均返回 `total=42`（匹配全部）。搜索 `_` 应无结果。
    建议 `LIKE ? ESCAPE '\'` 并转义 `%_\`。
 6. **路由 `meta.requiresAuth` 是死配置**：`web/src/router/index.js:95` 的守卫只设 `document.title` 就 `return true`，
    从不校验登录；`/reviews/new`、`/submit` 上的 `requiresAuth: true` 无人读取。目前靠视图自身
    `auth.state.loaded / auth.user` 兜住（ReviewFormView 有骨架屏 + 未登录卡片，做对了），
    服务端也一律 401，所以**不构成漏洞**，但该 meta 会误导后续开发。建议要么删掉，要么真正实现守卫。
-7. **被拦截内容仍以 120 字摘录写入 `audit_log`**：契约说命中红线「内容不入库」，实测 `audit_log.excerpt`
-   存了 `"有货私聊"` 等原文片段（`ref_id=null`）。作为审核留痕是合理的，但契约措辞应改为
-   「不入业务表，仅 120 字摘录进 audit_log」。
-8. **`server/seed.js:86` 有重复条件**：`text.includes('petit') || text.includes('petit')`（左右完全相同），
+7. ~~**被拦截内容仍以 120 字摘录写入 `audit_log`**~~：契约说命中红线「内容不入库」，实测 `audit_log.excerpt`
+    **已修**：新增 `server/lib/audit.js` 统一审计写入。`blocked` 动作**不留存原文**，只记命中词与内容指纹（sha256 前 16 位）+ 字数；`queued`/`clean` 等原本就已入库或发布的内容才留摘录。三处重复的 `excerpt()`（默认长度 120/120/200 不一致）与三处 INSERT 一并收敛到该模块。配套断言：冒烟脚本会提交含手机号的违规内容，然后全接口排查该片段是否出现。
+8. ~~**`server/seed.js:86` 有重复条件**~~（**已修**：现为 `petit` / `petito`）：`text.includes('petit') || text.includes('petit')`（左右完全相同），
    应是复制粘贴残留，右侧原意大概是 `petit corona`/`petit robusto`。
-9. **`database/schema.sql` 里 `('Cedar/Mint','雪松/薄荷混合','complex',28)` 是垃圾字典项**：
+9. ~~**`database/schema.sql` 里 `('Cedar/Mint',...)` 是垃圾字典项**~~（**已修**：删除。该词被引用 0 次，而 `Cedar`（288 次）与 `Mint` 均已单独存在；留着会让筛选栏多一个永远为空的选项）：
    名称由两个风味拼成，`content/seed_cigars_15.csv` 与 `database/seed/cigars.csv` 都没有它，`count=0`。
    连同另外 13 个 `count=0` 的项，风味轮会出现 14 个筛不出任何结果的标签。
-10. **`app_meta.db_version` 只在缺失时写入**（`stampVersion()` 不做 UPDATE），升级后版本戳不会刷新；
+10. ~~**`app_meta.db_version` 只在缺失时写入**~~（**已修**：`stampVersion()` 改为版本变化时 UPDATE；实测把戳改成 `0.0.1-old` 后重启，日志输出「数据库版本戳更新 0.0.1-old → 1.1.0」）
     且 `node scripts/seed.mjs --reset` 后 `app_meta` 为空（只有启动服务器才补写）。
 11. ~~**年龄门只在客户端 + 可选 Cookie 层**：`readAgeGate()` 的结果不被任何业务接口强制~~
     **已修**：`assertAgeGate()` 已在 `/api/*` 入口强制，未过门返回 `403 AGE_GATE_REQUIRED`。
@@ -553,7 +555,7 @@ npm run preflight     → 35 通过 / 0 失败 / 1 警告（仅「未找到 .env
 12. **`deployment/checklist.md §1.3` 与本实现完全对不上**（详见下节），而 README 称其为「验收标准仍有效」。
 13. **`config/sensitive-words.json` 的 `image_moderation` 只有建议文本**，无任何实现（ROADMAP 已坦诚列为 P1）。
 14. **`docker`/CI 缺失、`web/dist` 需手工构建**——ROADMAP 已自述，不重复计缺陷。
-15. **`/api/reviews` 与 `/api/cigars` 的 `paginate()` 是两份复制代码**（一处 12 一处 24 的默认值），
+15. ~~**`paginate()` 是两份复制代码**~~（**已修**：分页逻辑集中在 `server/lib/query.js` 的 `parsePagination()`，12/24 只是各调用点传入的 `defaultPageSize` 参数，属于合理差异）
     S5 的 bug 也因此复制了两份。建议抽到 `server/lib/http.js` 统一。
 
 ---

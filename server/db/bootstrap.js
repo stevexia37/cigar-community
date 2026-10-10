@@ -48,11 +48,23 @@ export function bootstrap({ reset = false, log = console } = {}) {
   }
 }
 
-/** 首次启动时记录数据库版本，便于日后迁移判断 */
+/**
+ * 记录数据库版本，便于日后迁移判断。
+ *
+ * ⚠️ 必须是「写入或更新」而不是「仅首次写入」：
+ * 原实现只在 key 缺失时 INSERT，于是升级后版本戳永远停在首次安装那个版本 ——
+ * 而这段代码的用途恰恰是判断「这个库是哪个版本建的」，版本戳过期就失去意义，
+ * 未来做数据迁移时会按错误的前提决策。
+ */
 export function stampVersion(version, log = console) {
   const row = queryOne('SELECT value FROM app_meta WHERE key = ?', ['db_version'])
   if (!row) {
     run('INSERT INTO app_meta (key, value, updated_at) VALUES (?,?,?)', ['db_version', version, nowIso()])
     log.log(`[bootstrap] 标记数据库版本 ${version}`)
+    return
+  }
+  if (row.value !== version) {
+    run('UPDATE app_meta SET value = ?, updated_at = ? WHERE key = ?', [version, nowIso(), 'db_version'])
+    log.log(`[bootstrap] 数据库版本戳更新 ${row.value} → ${version}`)
   }
 }

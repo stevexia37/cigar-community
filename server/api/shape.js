@@ -106,6 +106,19 @@ export function shapeCigar(row, flavors = []) {
 }
 
 /**
+ * 转义 LIKE 模式里的元字符。
+ *
+ * ⚠️ 不转义的后果是真实的：用户搜 `%` 会匹配**全部**记录（实测 380 条全返回），
+ * 搜 `_` 同理（`_` 在 LIKE 里匹配任意单字符）。
+ * 这既是错误的搜索结果，也让「用通配符把整库刷出来」成为可能。
+ *
+ * 转义符选 `\` 并在 SQL 里显式声明 `ESCAPE '\'`，同时转义 `\` 自身。
+ */
+export function escapeLike(value) {
+  return String(value ?? '').replace(/[\\%_]/g, (ch) => `\\${ch}`)
+}
+
+/**
  * 构造列表查询。
  * 说明：风味/品牌用 EXISTS 子查询而不是 JOIN，避免多风味雪茄在结果里被放大重复。
  */
@@ -116,11 +129,13 @@ export function buildCigarQuery(filters = {}) {
   const { q, origins = [], sizes = [], strengths = [], flavorIds = [], brandIds = [], minRating } = filters
 
   if (q) {
-    const like = `%${q}%`
+    // 必须转义后使用，并显式 ESCAPE —— 否则 `%` / `_` 会被当成通配符
+    const like = `%${escapeLike(q)}%`
     where.push(`(
-      b.name LIKE ? OR c.vitola LIKE ? OR COALESCE(c.series,'') LIKE ? OR COALESCE(c.description,'') LIKE ?
+      b.name LIKE ? ESCAPE '\\' OR c.vitola LIKE ? ESCAPE '\\'
+      OR COALESCE(c.series,'') LIKE ? ESCAPE '\\' OR COALESCE(c.description,'') LIKE ? ESCAPE '\\'
       OR EXISTS (SELECT 1 FROM cigar_flavors cf2 JOIN flavors f2 ON f2.id = cf2.flavor_id
-                 WHERE cf2.cigar_id = c.id AND (f2.name LIKE ? OR f2.name_cn LIKE ?))
+                 WHERE cf2.cigar_id = c.id AND (f2.name LIKE ? ESCAPE '\\' OR f2.name_cn LIKE ? ESCAPE '\\'))
     )`)
     params.push(like, like, like, like, like, like)
   }

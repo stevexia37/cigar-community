@@ -5,6 +5,7 @@ import { scan } from '../lib/sensitive.js'
 import { requireAuth } from '../middleware/auth.js'
 import { shapeReview, imagesByReview } from './shape.js'
 import { saveImage, MAX_IMAGES_PER_REVIEW } from '../lib/storage.js'
+import { logAudit } from '../lib/audit.js'
 
 export const reviewRouter = new Router()
 
@@ -41,16 +42,11 @@ function optionalFloat(value, name, { min = 0, max = 100 } = {}) {
   return Math.round(n * 10) / 10
 }
 
-function excerpt(text, len = 120) {
-  const s = String(text || '').replace(/\s+/g, ' ').trim()
-  return s.length > len ? s.slice(0, len) + '…' : s
-}
-
 function logSensitivity(userId, kind, refId, result, text) {
-  run(
-    'INSERT INTO audit_log (user_id, kind, ref_id, action, matched, excerpt, created_at) VALUES (?,?,?,?,?,?,?)',
-    [userId, kind, refId, result.action, JSON.stringify(result.matched), excerpt(text), nowIso()],
-  )
+  // 统一走 server/lib/audit.js：blocked 不留存原文（只记命中词与指纹），
+  // 其余动作留摘录供运营复核。曾在这里直接写入 120 字原文摘录，
+  // 等于把红线要拦的交易话术二次留存。
+  logAudit({ userId, kind, refId, action: result.action, matched: result.matched, text })
 }
 
 /**
@@ -246,6 +242,13 @@ reviewRouter.post('/reviews/:id/helpful', async (req, res) => {
 
   const review = queryOne('SELECT id, user_id, status FROM reviews WHERE id = ?', [id])
   if (!review || review.status !== 1) throw notFound('笔记不存在')
+
+  // 作者不得给自己的笔记投票。
+  // 「有用」数的意义是他人评价，作者自投会让它失真（实测作者投票后 +1）。
+  // 这里用 403 而不是静默忽略：静默忽略会让前端以为投票成功、状态却不变。
+  if (review.user_id === user.id) {
+    throw new HttpError(403, '不能给自己的品吸笔记投票', 'SELF_VOTE_NOT_ALLOWED')
+  }
 
   const existing = queryOne('SELECT 1 AS x FROM review_votes WHERE review_id = ? AND user_id = ?', [id, user.id])
 

@@ -8,6 +8,7 @@
  * 权限：全部要求 admin 或 editor 角色。普通用户一律 403。
  */
 import { Router, sendJson, badRequest, notFound, HttpError } from '../lib/http.js'
+import { logAudit } from '../lib/audit.js'
 import { query, queryOne, run, transaction, nowIso, count } from '../db/index.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import { parsePagination, parseId } from '../lib/query.js'
@@ -25,17 +26,9 @@ function requireModerator(req) {
   return user
 }
 
-function excerpt(text, len = 200) {
-  const s = String(text || '').replace(/\s+/g, ' ').trim()
-  return s.length > len ? s.slice(0, len) + '…' : s
-}
-
 /** 写一条运营操作日志，便于事后追责与回溯 */
 function logAction(actorId, kind, refId, action, matched, text) {
-  run(
-    'INSERT INTO audit_log (user_id, kind, ref_id, action, matched, excerpt, created_at) VALUES (?,?,?,?,?,?,?)',
-    [actorId, kind, refId, action, matched ?? null, excerpt(text), nowIso()],
-  )
+  logAudit({ userId: actorId, kind, refId, action, matched, text })
 }
 
 // ---------------------------------------------------------------- 概览

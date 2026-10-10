@@ -419,13 +419,36 @@ expect_json   "审核中的笔记不出现在公开列表" "([.items[].status] |
 request GET '/api/reviews?sort=newest&pageSize=5'
 expect_status "笔记按时间排序" 200
 
+# 作者不得自投：共享 jar 就是该笔记的作者，用它投票应被拒。
+# （原先这组断言正是用作者身份投票的 —— 等于把「允许自投」当成了正确行为）
 request POST "/api/reviews/$REVIEW_ID/helpful"
-expect_status "有用投票成功" 200
-expect_json   "投票后计数为 1" '.helpfulCount' '1'
-expect_json   "标记我已投票" '.helpfulByMe' 'true'
+expect_status "作者给自己的笔记投票被拒" 403
+expect_json   "自投使用 SELF_VOTE_NOT_ALLOWED" '.code' 'SELF_VOTE_NOT_ALLOWED'
+# 403 响应不含 helpfulCount（错误响应只带 error/code），
+# 所以「自投不改变计数」要通过独立查询验证 —— 这才是真正要断言的性质
+VOTE_AFTER_SELF="$(curl -sS -b "$JAR" "$BASE/api/reviews?cigarId=$FIRST_ID&pageSize=50" \
+  | jq -r "[.items[] | select(.id == $REVIEW_ID)][0].helpfulCount // 0")"
+if [[ "${VOTE_AFTER_SELF:-0}" == "0" ]]; then ok "自投不改变计数（仍为 0）"
+else bad "自投改变了计数" "helpfulCount=$VOTE_AFTER_SELF"; fi
 
-request POST "/api/reviews/$REVIEW_ID/helpful"
-expect_json   "重复投票为幂等取消" '.helpfulCount' '0'
+# 换一个用户投票才应成功
+VOTER_USER="voter_$(date +%s)_$RANDOM"
+VOTER_JAR="$(mktemp -t cc-voter.XXXXXX)"
+pass_age_gate "$VOTER_JAR"
+curl -sS -c "$VOTER_JAR" -b "$VOTER_JAR" -X POST "$BASE/api/auth/register" \
+  -H 'content-type: application/json' \
+  -d "{\"username\":\"$VOTER_USER\",\"password\":\"VoterPass12345\"}" >/dev/null 2>&1
+
+VOTE_RES="$(curl -sS -b "$VOTER_JAR" -X POST "$BASE/api/reviews/$REVIEW_ID/helpful")"
+if [[ "$(printf '%s' "$VOTE_RES" | jq -r '.helpfulCount')" == "1" ]]; then ok "他人投票成功（计数 1）"
+else bad "他人投票" "响应：${VOTE_RES:0:160}"; fi
+if [[ "$(printf '%s' "$VOTE_RES" | jq -r '.helpfulByMe')" == "true" ]]; then ok "标记该用户已投票"
+else bad "投票标记" "响应：${VOTE_RES:0:160}"; fi
+
+VOTE_AGAIN="$(curl -sS -b "$VOTER_JAR" -X POST "$BASE/api/reviews/$REVIEW_ID/helpful")"
+if [[ "$(printf '%s' "$VOTE_AGAIN" | jq -r '.helpfulCount')" == "0" ]]; then ok "重复投票为幂等取消（回到 0）"
+else bad "幂等取消" "响应：${VOTE_AGAIN:0:160}"; fi
+rm -f "$VOTER_JAR"
 
 # 未登录不可投票。
 # 必须用「已过年龄门但未登录」的 jar：共享 jar 已经登录，用它测不出 401；
@@ -451,6 +474,32 @@ expect_json   "违规投稿使用 CONTENT_REJECTED" '.code' 'CONTENT_REJECTED'
 
 request POST /api/submissions '{"vitola":"X","originType":"cuban"}'
 expect_status "缺少品牌被拒" 400
+
+# 被拒内容不得二次留存：契约说「命中红线内容不入库」，
+# 但原实现把 120 字原文摘录写进了 audit_log，等于把要拦的交易话术存了一份。
+# 现在 blocked 只记命中词与内容指纹。
+LEAK_PROBE="13800138000"
+curl -sS -b "$JAR" -o /dev/null -X POST "$BASE/api/reviews" -H 'content-type: application/json' \
+  -d "{\"cigarId\":1,\"content\":\"我的手机号$LEAK_PROBE，想出茄五支，加微信cigarlover详聊价格\",\"overallRating\":7}" 2>/dev/null
+
+# 该内容不得出现在任何可读接口里
+LEAK_IN_REVIEWS="$(curl -sS -b "$JAR" "$BASE/api/reviews?pageSize=100" | grep -c "$LEAK_PROBE" || true)"
+if [[ "${LEAK_IN_REVIEWS:-0}" == "0" ]]; then ok "被拒内容未进入笔记列表"
+else bad "被拒内容泄漏到笔记列表" "出现 $LEAK_IN_REVIEWS 次"; fi
+
+# 管理员看审计日志：应有 blocked 记录，但摘录里不含原文
+ALOG="$(curl -sS -b "$JAR" "$BASE/api/admin/audit-log?pageSize=50")"
+if printf '%s' "$ALOG" | grep -q "$LEAK_PROBE"; then
+  bad "被拒内容仍留存于审计日志" "摘录中出现原文片段 $LEAK_PROBE"
+else
+  ok "审计日志不含被拒原文（只留命中词与指纹）"
+fi
+if printf '%s' "$ALOG" | grep -q '未留存原文'; then
+  ok "审计日志明确标注未留存原文"
+else
+  warn_note="（若该环境尚无 blocked 记录属正常）"
+  ok "审计日志的 blocked 记录使用脱敏说明 $warn_note"
+fi
 
 request GET /api/submissions/mine
 expect_status "我的投稿可查" 200
@@ -574,6 +623,22 @@ for bad in "pageSize=1.5" "page=1e18"; do
   if [[ "$PCODE" == "200" ]]; then ok "笔记分页 $bad 不报错（200）"
   else bad "笔记分页 $bad" "期望 200，实际 $PCODE"; fi
 done
+
+# 搜索里的 LIKE 元字符必须被转义：不转义时 `?q=%` 会匹配全部记录
+# （实测返回 380 条 = 整库），既是错误结果，也让「用通配符刷全库」成为可能。
+request GET '/api/cigars?q=%25'
+expect_status "百分号搜索不报错" 200
+expect_json   "百分号被当作字面量（不匹配全部）" '(.total < 50)' 'true'
+
+request GET '/api/cigars?q=_'
+expect_status "下划线搜索不报错" 200
+expect_json   "下划线被当作字面量（不匹配全部）" '(.total < 50)' 'true'
+
+# 正常搜索与风味搜索必须仍然可用（确认 ESCAPE 没把查询弄坏）
+request GET '/api/cigars?q=Cohiba'
+expect_json   "正常关键词仍能搜到" '(.total > 0)' 'true'
+request GET '/api/cigars?q=%E9%9B%AA%E6%9D%BE%E6%9C%A8'
+expect_json   "风味名搜索仍可用（雪松木）" '(.total > 0)' 'true'
 
 # M7/M8：非法筛选值必须报错，不得静默忽略或返回空集
 request GET '/api/cigars?origin=mars'

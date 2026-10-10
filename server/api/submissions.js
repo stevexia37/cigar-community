@@ -1,4 +1,5 @@
 import { Router, sendJson, badRequest, HttpError } from '../lib/http.js'
+import { logAudit } from '../lib/audit.js'
 import { query, queryOne, run, nowIso } from '../db/index.js'
 import { scan } from '../lib/sensitive.js'
 import { requireAuth } from '../middleware/auth.js'
@@ -16,11 +17,6 @@ function num(value, name, { min, max, integer = false } = {}) {
   const n = Number(value)
   if (!Number.isFinite(n) || n < min || n > max) throw badRequest(`${name} 超出合理范围（${min}-${max}）`)
   return integer ? Math.round(n) : Math.round(n * 100) / 100
-}
-
-function excerpt(text, len = 120) {
-  const s = String(text || '').replace(/\s+/g, ' ').trim()
-  return s.length > len ? s.slice(0, len) + '…' : s
 }
 
 submissionRouter.post('/submissions', async (req, res) => {
@@ -59,11 +55,12 @@ submissionRouter.post('/submissions', async (req, res) => {
 
   const sensitivity = scan(`${payload.brand} ${payload.series || ''} ${payload.vitola} ${payload.description || ''} ${payload.note || ''}`)
   if (sensitivity.action === 'blocked') {
-    run(
-      'INSERT INTO audit_log (user_id, kind, ref_id, action, matched, excerpt, created_at) VALUES (?,?,?,?,?,?,?)',
-      [user.id, 'submission', null, sensitivity.action, JSON.stringify(sensitivity.matched),
-        excerpt(`${payload.brand} ${payload.vitola} ${payload.note || ''}`), nowIso()],
-    )
+    // blocked 不留存原文，只记命中词与指纹
+    logAudit({
+      userId: user.id, kind: 'submission', refId: null,
+      action: sensitivity.action, matched: sensitivity.matched,
+      text: `${payload.brand} ${payload.vitola} ${payload.note || ''}`,
+    })
     throw new HttpError(403, sensitivity.message, 'CONTENT_REJECTED', { matched: sensitivity.matched })
   }
 
@@ -74,11 +71,11 @@ submissionRouter.post('/submissions', async (req, res) => {
   )
   const id = Number(result.lastInsertRowid)
 
-  run(
-    'INSERT INTO audit_log (user_id, kind, ref_id, action, matched, excerpt, created_at) VALUES (?,?,?,?,?,?,?)',
-    [user.id, 'submission', id, sensitivity.action, JSON.stringify(sensitivity.matched),
-      excerpt(`${payload.brand} ${payload.vitola}`), ts],
-  )
+  logAudit({
+    userId: user.id, kind: 'submission', refId: id,
+    action: sensitivity.action, matched: sensitivity.matched,
+    text: `${payload.brand} ${payload.vitola}`,
+  })
 
   sendJson(res, 202, {
     code: 'CONTENT_QUEUED',

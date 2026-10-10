@@ -32,6 +32,25 @@
 | `INVALID_MIN_RATING` | 400 | `minRating` 不是 0-5 的数字 |
 | `INVALID_ID` | 400 | 路径或查询中的 ID 不是正整数 |
 
+### 8.1.1 修改口令 `POST /api/auth/password`
+
+```jsonc
+// 请求（需登录）
+{ "currentPassword": "旧口令", "newPassword": "新口令" }
+// 200
+{ "ok": true }
+```
+
+| 情况 | 响应 |
+|---|---|
+| 当前口令不正确 | `401 UNAUTHORIZED` |
+| 新口令不满足强度要求 | `400 BAD_REQUEST`（`error` 说明具体原因） |
+| 未登录 | `401 UNAUTHORIZED` |
+
+**改口令会撤销该用户的其它所有会话**（仅保留当前这一个，避免用户改完就被自己登出）。
+这是刻意的安全语义：若攻击者已窃取会话，改口令必须能把它赶下线 ——
+早期实现漏了这一步，实测旧会话在改口令后仍返回 200。
+
 ## 9.2 SEO 与分享
 
 服务端对 SPA 路由做 **meta 注入**：爬虫不执行 JS，所以由服务端在返回 `index.html` 时
@@ -358,6 +377,7 @@ OG 的 `og:url` / `og:image` 一律输出**绝对地址**（爬虫不解析相�
 | POST | `/api/auth/register` | `{ username, password, email? }` | `201 { user }` |
 | POST | `/api/auth/login` | `{ username, password }` | `200 { user }` |
 | POST | `/api/auth/logout` | — | `200 { ok: true }` |
+| POST | `/api/auth/password` | `{ currentPassword, newPassword }`（需登录） | `200 { ok: true }` |
 | POST | `/api/auth/password` | `{ currentPassword, newPassword }` | `200 { ok: true, revokedSessions: N }` |
 | GET | `/api/auth/me` | — | `200 { user, ageVerified, isBot }` 或 `200 { user: null }` |
 

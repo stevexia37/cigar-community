@@ -41,7 +41,16 @@
           <span class="text-cigar-cream">{{ log.username }}</span>
           <span class="ml-auto text-cigar-smoke">{{ formatTime(log.createdAt) }}</span>
         </div>
-        <p v-if="log.excerpt" class="mt-1.5 text-xs leading-relaxed text-cigar-cream/80">{{ log.excerpt }}</p>
+        <!-- blocked 记录不留存原文（契约要求「命中红线内容不入库」），
+             这里给出可读说明，避免运营误以为「漏记了内容」 -->
+        <p
+          v-if="log.excerpt"
+          class="mt-1.5 text-xs leading-relaxed"
+          :class="log.action === 'blocked' ? 'text-cigar-smoke' : 'text-cigar-cream/80'"
+        >{{ log.excerpt }}</p>
+        <p v-if="log.action === 'blocked'" class="mt-1 text-[11px] text-cigar-smoke">
+          出于合规，被拒内容不留存原文；上面的指纹可用于识别同一段内容被反复提交。
+        </p>
         <p v-if="log.matched && log.matched.length" class="mt-1.5 flex flex-wrap gap-1">
           <span v-for="m in log.matched" :key="m" class="rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] text-red-300">{{ m }}</span>
         </p>
