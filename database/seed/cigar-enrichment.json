@@ -2,1022 +2,1148 @@
   "_comment": "参考价与综合评分补充数据。参考价是公开资料整理的估算中位价（人民币），不是交易报价、不是实时行情；评分是 1-5 星口碑区间估计。缺项表示无可靠依据，前端显示「暂无」。",
   "_generated_by": "scripts/build-enrichment.mjs",
   "_note": "键为「归一化品牌||归一化系列||归一化型号」（系列可为空串）。导入时与 cigars.csv 匹配，先按三段精确匹配，未命中再退回「品牌+型号」匹配（忽略大小写/空格/标点/变音符号）",
-  "count": 280,
+  "count": 257,
   "items": {
-    "cohiba||||robustos": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Robustos",
-      "priceCny": 1680,
-      "rating": 4.7
+    "agingroom||quattro||toro": {
+      "brand": "Aging Room",
+      "series": "Quattro",
+      "vitola": "Toro",
+      "priceCny": 150,
+      "rating": 4.3
     },
-    "cohiba||||robusto": {
-      "brand": "Cohiba",
-      "series": "",
+    "ajfernandez||sanlotano||toro": {
+      "brand": "A.J. Fernandez",
+      "series": "San Lotano",
+      "vitola": "Toro",
+      "priceCny": 130,
+      "rating": 4.2
+    },
+    "ajfernandez||newworld||toro": {
+      "brand": "A.J. Fernandez",
+      "series": "New World",
+      "vitola": "Toro",
+      "priceCny": 120,
+      "rating": 4.3
+    },
+    "ajfernandez||lastcall||robusto": {
+      "brand": "A.J. Fernandez",
+      "series": "Last Call",
       "vitola": "Robusto",
-      "priceCny": 1680,
-      "rating": 4.7
-    },
-    "cohiba||||sigloi": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Siglo I",
-      "priceCny": 780,
+      "priceCny": 140,
       "rating": 4.3
     },
-    "cohiba||||sigloii": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Siglo II",
-      "priceCny": 1080,
+    "ajfernandez||diasdegloria||toro": {
+      "brand": "A.J. Fernandez",
+      "series": "Dias de Gloria",
+      "vitola": "Toro",
+      "priceCny": 150,
       "rating": 4.4
     },
-    "cohiba||||sigloiii": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Siglo III",
-      "priceCny": 1480,
-      "rating": 4.5
-    },
-    "cohiba||||sigloiv": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Siglo IV",
-      "priceCny": 1780,
-      "rating": 4.6
-    },
-    "cohiba||||siglov": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Siglo V",
-      "priceCny": 2180,
-      "rating": 4.6
-    },
-    "cohiba||||siglovi": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Siglo VI",
-      "priceCny": 2280,
+    "arturofuente||opusx||robusto": {
+      "brand": "Arturo Fuente",
+      "series": "Opus X",
+      "vitola": "Robusto",
+      "priceCny": 380,
       "rating": 4.8
     },
-    "cohiba||||esplendidos": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Espléndidos",
-      "priceCny": 3200,
-      "rating": 4.7
-    },
-    "cohiba||||exquisitos": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Exquisitos",
-      "priceCny": 880,
-      "rating": 4.2
-    },
-    "cohiba||||coronaespecial": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Corona Especial",
-      "priceCny": 1380,
-      "rating": 4.4
-    },
-    "cohiba||||panetelas": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Panetelas",
-      "priceCny": 760,
-      "rating": 4.1
-    },
-    "cohiba||||bhk52": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "BHK 52",
-      "priceCny": 6800,
-      "rating": 4.9
-    },
-    "cohiba||||bhk54": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "BHK 54",
-      "priceCny": 8600,
-      "rating": 4.9
-    },
-    "cohiba||||bhk56": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "BHK 56",
-      "priceCny": 9800,
+    "arturofuente||opusx||doublecorona": {
+      "brand": "Arturo Fuente",
+      "series": "Opus X",
+      "vitola": "Double Corona",
+      "priceCny": 520,
       "rating": 4.8
     },
-    "cohiba||||genios": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Genios",
-      "priceCny": 2680,
-      "rating": 4.7
-    },
-    "cohiba||||magicos": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Magicos",
-      "priceCny": 1580,
-      "rating": 4.6
-    },
-    "cohiba||||secretos": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Secretos",
-      "priceCny": 1080,
-      "rating": 4.4
-    },
-    "cohiba||||novedosos": {
-      "brand": "Cohiba",
-      "series": "",
-      "vitola": "Novedosos",
-      "priceCny": 2080,
-      "rating": 4.6
-    },
-    "montecristo||||no1": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "No.1",
-      "priceCny": 1280,
-      "rating": 4.4
-    },
-    "montecristo||||no2": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "No.2",
-      "priceCny": 980,
-      "rating": 4.5
-    },
-    "montecristo||||no3": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "No.3",
-      "priceCny": 780,
-      "rating": 4.2
-    },
-    "montecristo||||no4": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "No.4",
-      "priceCny": 680,
-      "rating": 4.5
-    },
-    "montecristo||||no5": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "No.5",
-      "priceCny": 520,
-      "rating": 4.1
-    },
-    "montecristo||||edmundo": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "Edmundo",
-      "priceCny": 880,
-      "rating": 4.4
-    },
-    "montecristo||||petitedmundo": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "Petit Edmundo",
-      "priceCny": 720,
-      "rating": 4.4
-    },
-    "montecristo||||doubleedmundo": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "Double Edmundo",
-      "priceCny": 1180,
-      "rating": 4.5
-    },
-    "montecristo||||maltes": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "Maltés",
-      "priceCny": 1980,
-      "rating": 4.7
-    },
-    "montecristo||||dumas": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "Dumas",
-      "priceCny": 1680,
-      "rating": 4.6
-    },
-    "montecristo||||leyenda": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "Leyenda",
-      "priceCny": 2280,
-      "rating": 4.6
-    },
-    "montecristo||||eagle": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "Eagle",
-      "priceCny": 880,
-      "rating": 4.2
-    },
-    "montecristo||||master": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "Master",
-      "priceCny": 680,
-      "rating": 4.1
-    },
-    "montecristo||||regata": {
-      "brand": "Montecristo",
-      "series": "",
-      "vitola": "Regata",
-      "priceCny": 780,
-      "rating": 4.1
-    },
-    "partagas||||seriedno4": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "Serie D No.4",
-      "priceCny": 880,
-      "rating": 4.3
-    },
-    "partagas||||seriedno5": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "Serie D No.5",
-      "priceCny": 620,
-      "rating": 4.3
-    },
-    "partagas||||seriedno6": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "Serie D No.6",
-      "priceCny": 520,
-      "rating": 4.2
-    },
-    "partagas||||serieeno1": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "Serie E No.1",
-      "priceCny": 1880,
-      "rating": 4.5
-    },
-    "partagas||||serieeno2": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "Serie E No.2",
-      "priceCny": 1180,
-      "rating": 4.2
-    },
-    "partagas||||seriepno2": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "Serie P No.2",
-      "priceCny": 980,
-      "rating": 4.3
-    },
-    "partagas||||seriepno2tubos": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "Serie P No.2 Tubos",
-      "priceCny": 1020,
-      "rating": 4.3
-    },
-    "partagas||||lusitanias": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "Lusitanias",
-      "priceCny": 1680,
-      "rating": 4.6
-    },
-    "partagas||||898": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "8-9-8",
-      "priceCny": 1280,
-      "rating": 4.4
-    },
-    "partagas||||coronassenior": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "Coronas Senior",
-      "priceCny": 780,
-      "rating": 4.2
-    },
-    "partagas||||superpartagas": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "Super Partagás",
-      "priceCny": 820,
-      "rating": 4.2
-    },
-    "partagas||||seriepno2maduro": {
-      "brand": "Partagás",
-      "series": "",
-      "vitola": "Série P No.2 Maduro",
-      "priceCny": 1180,
-      "rating": 4.4
-    },
-    "romeoyjulieta||||churchill": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Churchill",
-      "priceCny": 980,
-      "rating": 4.4
-    },
-    "romeoyjulieta||||widechurchill": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Wide Churchill",
-      "priceCny": 880,
-      "rating": 4.4
-    },
-    "romeoyjulieta||||shortstory": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Short Story",
-      "priceCny": 580,
-      "rating": 4.3
-    },
-    "romeoyjulieta||||exhibicionno4": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Exhibición No.4",
-      "priceCny": 620,
-      "rating": 4.2
-    },
-    "romeoyjulieta||||petitcoronas": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Petit Coronas",
-      "priceCny": 480,
-      "rating": 4.1
-    },
-    "romeoyjulieta||||coronas": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Coronas",
-      "priceCny": 580,
-      "rating": 4.1
-    },
-    "romeoyjulieta||||nobles": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Nobles",
-      "priceCny": 1280,
-      "rating": 4.5
-    },
-    "romeoyjulieta||||hidalgos": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Hidalgos",
-      "priceCny": 1180,
-      "rating": 4.4
-    },
-    "romeoyjulieta||||dianas": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Dianas",
-      "priceCny": 1380,
-      "rating": 4.5
-    },
-    "romeoyjulieta||||romeono1": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Romeo No.1",
-      "priceCny": 520,
-      "rating": 4
-    },
-    "romeoyjulieta||||romeono2": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Romeo No.2",
-      "priceCny": 560,
-      "rating": 4
-    },
-    "romeoyjulieta||||romeono3": {
-      "brand": "Romeo y Julieta",
-      "series": "",
-      "vitola": "Romeo No.3",
+    "arturofuente||opusx||superbelicoso": {
+      "brand": "Arturo Fuente",
+      "series": "Opus X",
+      "vitola": "Super Belicoso",
       "priceCny": 420,
+      "rating": 4.8
+    },
+    "arturofuente||hemingway||shortstory": {
+      "brand": "Arturo Fuente",
+      "series": "Hemingway",
+      "vitola": "Short Story",
+      "priceCny": 120,
+      "rating": 4.3
+    },
+    "arturofuente||hemingway||bestseller": {
+      "brand": "Arturo Fuente",
+      "series": "Hemingway",
+      "vitola": "Best Seller",
+      "priceCny": 110,
+      "rating": 4.3
+    },
+    "arturofuente||hemingway||signature": {
+      "brand": "Arturo Fuente",
+      "series": "Hemingway",
+      "vitola": "Signature",
+      "priceCny": 140,
+      "rating": 4.3
+    },
+    "arturofuente||hemingway||classic": {
+      "brand": "Arturo Fuente",
+      "series": "Hemingway",
+      "vitola": "Classic",
+      "priceCny": 170,
+      "rating": 4.3
+    },
+    "arturofuente||doncarlos||robusto": {
+      "brand": "Arturo Fuente",
+      "series": "Don Carlos",
+      "vitola": "Robusto",
+      "priceCny": 180,
+      "rating": 4.4
+    },
+    "arturofuente||doncarlos||belicoso": {
+      "brand": "Arturo Fuente",
+      "series": "Don Carlos",
+      "vitola": "Belicoso",
+      "priceCny": 190,
+      "rating": 4.4
+    },
+    "arturofuente||anejo||no46": {
+      "brand": "Arturo Fuente",
+      "series": "Añejo",
+      "vitola": "No.46",
+      "priceCny": 220,
+      "rating": 4.5
+    },
+    "arturofuente||anejo||no48": {
+      "brand": "Arturo Fuente",
+      "series": "Añejo",
+      "vitola": "No.48",
+      "priceCny": 260,
+      "rating": 4.5
+    },
+    "arturofuente||granreserva||florfina858": {
+      "brand": "Arturo Fuente",
+      "series": "Gran Reserva",
+      "vitola": "Flor Fina 8-5-8",
+      "priceCny": 90,
+      "rating": 4.2
+    },
+    "arturofuente||chateaufuente||chateaufuente": {
+      "brand": "Arturo Fuente",
+      "series": "Chateau Fuente",
+      "vitola": "Chateau Fuente",
+      "priceCny": 80,
       "rating": 3.9
     },
-    "hupmann||||magnum46": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Magnum 46",
-      "priceCny": 880,
-      "rating": 4.3
-    },
-    "hupmann||||magnum50": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Magnum 50",
-      "priceCny": 980,
-      "rating": 4.3
-    },
-    "hupmann||||magnum54": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Magnum 54",
-      "priceCny": 1080,
-      "rating": 4.3
-    },
-    "hupmann||||connoisseurno1": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Connoisseur No.1",
-      "priceCny": 780,
-      "rating": 4.2
-    },
-    "hupmann||||connoisseurno2": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Connoisseur No.2",
-      "priceCny": 880,
-      "rating": 4.2
-    },
-    "hupmann||||connoisseurno3": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Connoisseur No.3",
-      "priceCny": 680,
-      "rating": 4.1
-    },
-    "hupmann||||sirwinston": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Sir Winston",
-      "priceCny": 1680,
-      "rating": 4.5
-    },
-    "hupmann||||halfcorona": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Half Corona",
-      "priceCny": 420,
-      "rating": 4.1
-    },
-    "hupmann||||majestic": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Majestic",
-      "priceCny": 520,
+    "arturofuente||chateaufuente||doublechateau": {
+      "brand": "Arturo Fuente",
+      "series": "Chateau Fuente",
+      "vitola": "Double Chateau",
+      "priceCny": 110,
       "rating": 4
     },
-    "hupmann||||regalias": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Regalias",
-      "priceCny": 560,
-      "rating": 4
+    "ashton||vsg||robusto": {
+      "brand": "Ashton",
+      "series": "VSG",
+      "vitola": "Robusto",
+      "priceCny": 180,
+      "rating": 4.4
     },
-    "hupmann||||coronasmajor": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Coronas Major",
-      "priceCny": 620,
-      "rating": 4.1
+    "ashton||vsg||belicosono1": {
+      "brand": "Ashton",
+      "series": "VSG",
+      "vitola": "Belicoso No.1",
+      "priceCny": 190,
+      "rating": 4.4
     },
-    "hupmann||||coronasjunior": {
-      "brand": "H.Upmann",
-      "series": "",
-      "vitola": "Coronas Junior",
-      "priceCny": 480,
-      "rating": 4
+    "ashton||classic||robusto": {
+      "brand": "Ashton",
+      "series": "Classic",
+      "vitola": "Robusto",
+      "priceCny": 140,
+      "rating": 3.9
     },
-    "hoyodemonterrey||||epicureno1": {
-      "brand": "Hoyo de Monterrey",
-      "series": "",
-      "vitola": "Epicure No.1",
-      "priceCny": 720,
-      "rating": 4.1
-    },
-    "hoyodemonterrey||||epicureno2": {
-      "brand": "Hoyo de Monterrey",
-      "series": "",
-      "vitola": "Epicure No.2",
-      "priceCny": 680,
+    "ashton||agedmaduro||robusto": {
+      "brand": "Ashton",
+      "series": "Aged Maduro",
+      "vitola": "Robusto",
+      "priceCny": 170,
       "rating": 4.2
     },
-    "hoyodemonterrey||||epicureespecial": {
-      "brand": "Hoyo de Monterrey",
-      "series": "",
-      "vitola": "Epicure Especial",
-      "priceCny": 880,
-      "rating": 4.3
-    },
-    "hoyodemonterrey||||epicuredeluxe": {
-      "brand": "Hoyo de Monterrey",
-      "series": "",
-      "vitola": "Epicure de Luxe",
-      "priceCny": 780,
-      "rating": 4.2
-    },
-    "hoyodemonterrey||||petitrobusto": {
-      "brand": "Hoyo de Monterrey",
-      "series": "",
-      "vitola": "Petit Robusto",
-      "priceCny": 520,
+    "ashton||cabinet||belicoso": {
+      "brand": "Ashton",
+      "series": "Cabinet",
+      "vitola": "Belicoso",
+      "priceCny": 160,
       "rating": 4.1
     },
-    "hoyodemonterrey||||doublecorona": {
-      "brand": "Hoyo de Monterrey",
-      "series": "",
-      "vitola": "Double Corona",
-      "priceCny": 1280,
-      "rating": 4.3
-    },
-    "hoyodemonterrey||||churchill": {
-      "brand": "Hoyo de Monterrey",
-      "series": "",
-      "vitola": "Churchill",
-      "priceCny": 980,
-      "rating": 4.2
-    },
-    "hoyodemonterrey||||lehoyodesanjuan": {
-      "brand": "Hoyo de Monterrey",
-      "series": "",
-      "vitola": "Le Hoyo de San Juan",
-      "priceCny": 1080,
-      "rating": 4.3
-    },
-    "hoyodemonterrey||||lehoyoderioseco": {
-      "brand": "Hoyo de Monterrey",
-      "series": "",
-      "vitola": "Le Hoyo de Rio Seco",
-      "priceCny": 1180,
-      "rating": 4.3
-    },
-    "bolivar||||belicososfinos": {
+    "bolivar||clasica||belicososfinostubos": {
       "brand": "Bolívar",
-      "series": "",
-      "vitola": "Belicosos Finos",
+      "series": "Clásica",
+      "vitola": "Belicosos Finos Tubos",
       "priceCny": 880,
       "rating": 4.1
     },
-    "bolivar||||royalcoronas": {
+    "bolivar||clasica||royalcoronas": {
       "brand": "Bolívar",
-      "series": "",
+      "series": "Clásica",
       "vitola": "Royal Coronas",
       "priceCny": 820,
       "rating": 4.3
     },
-    "bolivar||||royalcoronastubos": {
+    "bolivar||clasica||royalcoronastubos": {
       "brand": "Bolívar",
-      "series": "",
+      "series": "Clásica",
       "vitola": "Royal Coronas Tubos",
       "priceCny": 860,
       "rating": 4.3
     },
-    "bolivar||||petitcoronas": {
+    "bolivar||clasica||petitcoronas": {
       "brand": "Bolívar",
-      "series": "",
+      "series": "Clásica",
       "vitola": "Petit Coronas",
       "priceCny": 580,
       "rating": 4.1
     },
-    "bolivar||||goldmedal": {
+    "bolivar||clasica||goldmedal": {
       "brand": "Bolívar",
-      "series": "",
+      "series": "Clásica",
       "vitola": "Gold Medal",
       "priceCny": 1380,
       "rating": 4.5
     },
-    "bolivar||||libertador": {
+    "bolivar||clasica||libertador": {
       "brand": "Bolívar",
-      "series": "",
+      "series": "Clásica",
       "vitola": "Libertador",
       "priceCny": 1680,
       "rating": 4.5
     },
-    "bolivar||||coronasgigantes": {
+    "bolivar||clasica||coronasgigantes": {
       "brand": "Bolívar",
-      "series": "",
+      "series": "Clásica",
       "vitola": "Coronas Gigantes",
       "priceCny": 1180,
       "rating": 4.3
     },
-    "bolivar||||belicososfinostubos": {
+    "bolivar||novel||novel": {
       "brand": "Bolívar",
-      "series": "",
-      "vitola": "Belicosos Finos Tubos",
-      "priceCny": 920,
-      "rating": 4.1
-    },
-    "bolivar||||novel": {
-      "brand": "Bolívar",
-      "series": "",
+      "series": "Novel",
       "vitola": "Novel",
       "priceCny": 980,
       "rating": 4.3
     },
-    "trinidad||||fundadores": {
-      "brand": "Trinidad",
-      "series": "",
-      "vitola": "Fundadores",
-      "priceCny": 1980,
-      "rating": 4.6
-    },
-    "trinidad||||vigia": {
-      "brand": "Trinidad",
-      "series": "",
-      "vitola": "Vigía",
-      "priceCny": 1280,
-      "rating": 4.5
-    },
-    "trinidad||||reyes": {
-      "brand": "Trinidad",
-      "series": "",
-      "vitola": "Reyes",
-      "priceCny": 880,
-      "rating": 4.4
-    },
-    "trinidad||||coloniales": {
-      "brand": "Trinidad",
-      "series": "",
-      "vitola": "Coloniales",
-      "priceCny": 1080,
-      "rating": 4.4
-    },
-    "trinidad||||robustosextra": {
-      "brand": "Trinidad",
-      "series": "",
-      "vitola": "Robustos Extra",
-      "priceCny": 1480,
-      "rating": 4.5
-    },
-    "trinidad||||topes": {
-      "brand": "Trinidad",
-      "series": "",
-      "vitola": "Topes",
-      "priceCny": 1380,
-      "rating": 4.4
-    },
-    "trinidad||||esmeralda": {
-      "brand": "Trinidad",
-      "series": "",
-      "vitola": "Esmeralda",
-      "priceCny": 1280,
-      "rating": 4.4
-    },
-    "trinidad||||medialuna": {
-      "brand": "Trinidad",
-      "series": "",
-      "vitola": "Media Luna",
-      "priceCny": 980,
-      "rating": 4.3
-    },
-    "trinidad||||latrova": {
-      "brand": "Trinidad",
-      "series": "",
-      "vitola": "La Trova",
-      "priceCny": 1880,
-      "rating": 4.6
-    },
-    "juanlopez||||seleccionno1": {
-      "brand": "Juan López",
-      "series": "",
-      "vitola": "Selección No.1",
-      "priceCny": 680,
+    "camacho||corojo||toro": {
+      "brand": "Camacho",
+      "series": "Corojo",
+      "vitola": "Toro",
+      "priceCny": 120,
       "rating": 4.2
     },
-    "juanlopez||||seleccionno2": {
-      "brand": "Juan López",
-      "series": "",
-      "vitola": "Selección No.2",
-      "priceCny": 720,
-      "rating": 4.2
+    "camacho||triplemaduro||toro": {
+      "brand": "Camacho",
+      "series": "Triple Maduro",
+      "vitola": "Toro",
+      "priceCny": 140,
+      "rating": 4.4
     },
-    "juanlopez||||seleccionno4": {
-      "brand": "Juan López",
-      "series": "",
-      "vitola": "Selección No.4",
-      "priceCny": 820,
-      "rating": 4.2
-    },
-    "saintluisrey||||regios": {
-      "brand": "Saint Luis Rey",
-      "series": "",
-      "vitola": "Regios",
-      "priceCny": 580,
-      "rating": 4.1
-    },
-    "saintluisrey||||seriea": {
-      "brand": "Saint Luis Rey",
-      "series": "",
-      "vitola": "Serie A",
-      "priceCny": 680,
-      "rating": 4.1
-    },
-    "saintluisrey||||doublecoronas": {
-      "brand": "Saint Luis Rey",
-      "series": "",
-      "vitola": "Double Coronas",
-      "priceCny": 1180,
-      "rating": 4.2
-    },
-    "sanchopanza||||belicosos": {
-      "brand": "Sancho Panza",
-      "series": "",
-      "vitola": "Belicosos",
-      "priceCny": 520,
+    "camacho||connecticut||robusto": {
+      "brand": "Camacho",
+      "series": "Connecticut",
+      "vitola": "Robusto",
+      "priceCny": 100,
       "rating": 3.9
     },
-    "sanchopanza||||nonplus": {
-      "brand": "Sancho Panza",
-      "series": "",
-      "vitola": "Non Plus",
-      "priceCny": 620,
-      "rating": 3.9
+    "camacho||ecuador||toro": {
+      "brand": "Camacho",
+      "series": "Ecuador",
+      "vitola": "Toro",
+      "priceCny": 120,
+      "rating": 4.1
     },
-    "sanchopanza||||coronas": {
-      "brand": "Sancho Panza",
-      "series": "",
-      "vitola": "Coronas",
-      "priceCny": 480,
+    "cle||connecticut||robusto": {
+      "brand": "CLE",
+      "series": "Connecticut",
+      "vitola": "Robusto",
+      "priceCny": 70,
       "rating": 3.8
     },
-    "sancristobal||||lafuerza": {
-      "brand": "San Cristóbal",
-      "series": "",
-      "vitola": "La Fuerza",
-      "priceCny": 680,
+    "cle||corojo||robusto": {
+      "brand": "CLE",
+      "series": "Corojo",
+      "vitola": "Robusto",
+      "priceCny": 85,
       "rating": 4
     },
-    "sancristobal||||elprincipe": {
-      "brand": "San Cristóbal",
-      "series": "",
-      "vitola": "El Príncipe",
-      "priceCny": 480,
-      "rating": 3.9
-    },
-    "sancristobal||||lapunta": {
-      "brand": "San Cristóbal",
-      "series": "",
-      "vitola": "La Punta",
-      "priceCny": 720,
-      "rating": 4
-    },
-    "sancristobal||||mercaderes": {
-      "brand": "San Cristóbal",
-      "series": "",
-      "vitola": "Mercaderes",
-      "priceCny": 1080,
+    "cle||habano||robusto": {
+      "brand": "CLE",
+      "series": "Habano",
+      "vitola": "Robusto",
+      "priceCny": 90,
       "rating": 4.1
     },
-    "vegasrobaina||||famosos": {
-      "brand": "Vegas Robaina",
-      "series": "",
-      "vitola": "Famosos",
-      "priceCny": 780,
-      "rating": 4.1
-    },
-    "vegasrobaina||||donalejandro": {
-      "brand": "Vegas Robaina",
-      "series": "",
-      "vitola": "Don Alejandro",
-      "priceCny": 1480,
-      "rating": 4.3
-    },
-    "vegasrobaina||||unicos": {
-      "brand": "Vegas Robaina",
-      "series": "",
-      "vitola": "Unicos",
-      "priceCny": 880,
-      "rating": 4.1
-    },
-    "vegasrobaina||||clasicos": {
-      "brand": "Vegas Robaina",
-      "series": "",
-      "vitola": "Clásicos",
-      "priceCny": 980,
-      "rating": 4.1
-    },
-    "quaidorsay||||no50": {
-      "brand": "Quai d'Orsay",
-      "series": "",
-      "vitola": "No.50",
-      "priceCny": 620,
-      "rating": 4
-    },
-    "quaidorsay||||no54": {
-      "brand": "Quai d'Orsay",
-      "series": "",
-      "vitola": "No.54",
-      "priceCny": 780,
-      "rating": 4
-    },
-    "quaidorsay||||seleccion50": {
-      "brand": "Quai d'Orsay",
-      "series": "",
-      "vitola": "Selección 50",
-      "priceCny": 680,
-      "rating": 4
-    },
-    "quaidorsay||||seleccion54": {
-      "brand": "Quai d'Orsay",
-      "series": "",
-      "vitola": "Selección 54",
-      "priceCny": 820,
-      "rating": 4
-    },
-    "rafaelgonzalez||||petitcoronas": {
-      "brand": "Rafael González",
-      "series": "",
-      "vitola": "Petit Coronas",
-      "priceCny": 480,
-      "rating": 3.9
-    },
-    "rafaelgonzalez||||panetelasextra": {
-      "brand": "Rafael González",
-      "series": "",
-      "vitola": "Panetelas Extra",
-      "priceCny": 420,
-      "rating": 3.8
-    },
-    "rafaelgonzalez||||coronasextra": {
-      "brand": "Rafael González",
-      "series": "",
-      "vitola": "Coronas Extra",
-      "priceCny": 520,
-      "rating": 3.9
-    },
-    "punch||||doublecoronas": {
-      "brand": "Punch",
-      "series": "",
-      "vitola": "Double Coronas",
-      "priceCny": 1180,
-      "rating": 4.1
-    },
-    "punch||||punchpunch": {
-      "brand": "Punch",
-      "series": "",
-      "vitola": "Punch Punch",
-      "priceCny": 720,
-      "rating": 4
-    },
-    "punch||||coronations": {
-      "brand": "Punch",
-      "series": "",
-      "vitola": "Coronations",
-      "priceCny": 580,
-      "rating": 3.9
-    },
-    "punch||||petitcoronas": {
-      "brand": "Punch",
-      "series": "",
-      "vitola": "Petit Coronas",
-      "priceCny": 480,
-      "rating": 3.9
-    },
-    "ramonallones||||speciallyselected": {
-      "brand": "Ramon Allones",
-      "series": "",
-      "vitola": "Specially Selected",
-      "priceCny": 780,
-      "rating": 4.3
-    },
-    "ramonallones||||gigantes": {
-      "brand": "Ramon Allones",
-      "series": "",
-      "vitola": "Gigantes",
-      "priceCny": 1380,
-      "rating": 4.3
-    },
-    "ramonallones||||smallclubcoronas": {
-      "brand": "Ramon Allones",
-      "series": "",
-      "vitola": "Small Club Coronas",
-      "priceCny": 560,
-      "rating": 4.1
-    },
-    "elreydelmundo||||choixsupreme": {
-      "brand": "El Rey del Mundo",
-      "series": "",
-      "vitola": "Choix Supreme",
-      "priceCny": 680,
-      "rating": 3.9
-    },
-    "elreydelmundo||||tainos": {
-      "brand": "El Rey del Mundo",
-      "series": "",
-      "vitola": "Tainos",
-      "priceCny": 980,
-      "rating": 3.9
-    },
-    "elreydelmundo||||robustos": {
-      "brand": "El Rey del Mundo",
-      "series": "",
+    "cohiba||lineaclasica||robustos": {
+      "brand": "Cohiba",
+      "series": "Línea Clásica",
       "vitola": "Robustos",
-      "priceCny": 720,
+      "priceCny": 1680,
+      "rating": 4.7
+    },
+    "cohiba||lineaclasica||robusto": {
+      "brand": "Cohiba",
+      "series": "Línea Clásica",
+      "vitola": "Robusto",
+      "priceCny": 1680,
+      "rating": 4.7
+    },
+    "cohiba||siglo||sigloi": {
+      "brand": "Cohiba",
+      "series": "Siglo",
+      "vitola": "Siglo I",
+      "priceCny": 780,
+      "rating": 4.3
+    },
+    "cohiba||siglo||sigloii": {
+      "brand": "Cohiba",
+      "series": "Siglo",
+      "vitola": "Siglo II",
+      "priceCny": 1080,
+      "rating": 4.4
+    },
+    "cohiba||siglo||sigloiii": {
+      "brand": "Cohiba",
+      "series": "Siglo",
+      "vitola": "Siglo III",
+      "priceCny": 1480,
+      "rating": 4.5
+    },
+    "cohiba||siglo||sigloiv": {
+      "brand": "Cohiba",
+      "series": "Siglo",
+      "vitola": "Siglo IV",
+      "priceCny": 1780,
+      "rating": 4.6
+    },
+    "cohiba||siglo||siglov": {
+      "brand": "Cohiba",
+      "series": "Siglo",
+      "vitola": "Siglo V",
+      "priceCny": 2180,
+      "rating": 4.6
+    },
+    "cohiba||siglo||siglovi": {
+      "brand": "Cohiba",
+      "series": "Siglo",
+      "vitola": "Siglo VI",
+      "priceCny": 2280,
+      "rating": 4.8
+    },
+    "cohiba||lineaclasica||esplendidos": {
+      "brand": "Cohiba",
+      "series": "Línea Clásica",
+      "vitola": "Espléndidos",
+      "priceCny": 3200,
+      "rating": 4.7
+    },
+    "cohiba||lineaclasica||exquisitos": {
+      "brand": "Cohiba",
+      "series": "Línea Clásica",
+      "vitola": "Exquisitos",
+      "priceCny": 880,
+      "rating": 4.2
+    },
+    "cohiba||lineaclasica||coronaespecial": {
+      "brand": "Cohiba",
+      "series": "Línea Clásica",
+      "vitola": "Corona Especial",
+      "priceCny": 1380,
+      "rating": 4.4
+    },
+    "cohiba||lineaclasica||panetelas": {
+      "brand": "Cohiba",
+      "series": "Línea Clásica",
+      "vitola": "Panetelas",
+      "priceCny": 760,
+      "rating": 4.1
+    },
+    "cohiba||behike||bhk52": {
+      "brand": "Cohiba",
+      "series": "Behike",
+      "vitola": "BHK 52",
+      "priceCny": 6800,
+      "rating": 4.9
+    },
+    "cohiba||behike||bhk54": {
+      "brand": "Cohiba",
+      "series": "Behike",
+      "vitola": "BHK 54",
+      "priceCny": 8600,
+      "rating": 4.9
+    },
+    "cohiba||behike||bhk56": {
+      "brand": "Cohiba",
+      "series": "Behike",
+      "vitola": "BHK 56",
+      "priceCny": 9800,
+      "rating": 4.8
+    },
+    "cohiba||maduro5||genios": {
+      "brand": "Cohiba",
+      "series": "Maduro 5",
+      "vitola": "Genios",
+      "priceCny": 2680,
+      "rating": 4.7
+    },
+    "cohiba||maduro5||magicos": {
+      "brand": "Cohiba",
+      "series": "Maduro 5",
+      "vitola": "Magicos",
+      "priceCny": 1580,
+      "rating": 4.6
+    },
+    "cohiba||maduro5||secretos": {
+      "brand": "Cohiba",
+      "series": "Maduro 5",
+      "vitola": "Secretos",
+      "priceCny": 1080,
+      "rating": 4.4
+    },
+    "cohiba||novedosos||novedosos": {
+      "brand": "Cohiba",
+      "series": "Novedosos",
+      "vitola": "Novedosos",
+      "priceCny": 2080,
+      "rating": 4.6
+    },
+    "davidoff||millennium||robusto": {
+      "brand": "Davidoff",
+      "series": "Millennium",
+      "vitola": "Robusto",
+      "priceCny": 380,
+      "rating": 4.6
+    },
+    "davidoff||millennium||churchill": {
+      "brand": "Davidoff",
+      "series": "Millennium",
+      "vitola": "Churchill",
+      "priceCny": 460,
+      "rating": 4.6
+    },
+    "davidoff||millennium||toro": {
+      "brand": "Davidoff",
+      "series": "Millennium",
+      "vitola": "Toro",
+      "priceCny": 420,
+      "rating": 4.6
+    },
+    "davidoff||latehour||churchill": {
+      "brand": "Davidoff",
+      "series": "Late Hour",
+      "vitola": "Churchill",
+      "priceCny": 520,
+      "rating": 4.7
+    },
+    "davidoff||yamasa||piramides": {
+      "brand": "Davidoff",
+      "series": "Yamasa",
+      "vitola": "Piramides",
+      "priceCny": 420,
+      "rating": 4.5
+    },
+    "davidoff||yamasa||toro": {
+      "brand": "Davidoff",
+      "series": "Yamasa",
+      "vitola": "Toro",
+      "priceCny": 440,
+      "rating": 4.5
+    },
+    "davidoff||grandcru||no1": {
+      "brand": "Davidoff",
+      "series": "Grand Cru",
+      "vitola": "No.1",
+      "priceCny": 320,
+      "rating": 4.4
+    },
+    "davidoff||grandcru||no2": {
+      "brand": "Davidoff",
+      "series": "Grand Cru",
+      "vitola": "No.2",
+      "priceCny": 300,
+      "rating": 4.3
+    },
+    "davidoff||grandcru||no4": {
+      "brand": "Davidoff",
+      "series": "Grand Cru",
+      "vitola": "No.4",
+      "priceCny": 260,
+      "rating": 4.2
+    },
+    "davidoff||winstonchurchill||churchill": {
+      "brand": "Davidoff",
+      "series": "Winston Churchill",
+      "vitola": "Churchill",
+      "priceCny": 460,
+      "rating": 4.6
+    },
+    "davidoff||winstonchurchill||toro": {
+      "brand": "Davidoff",
+      "series": "Winston Churchill",
+      "vitola": "Toro",
+      "priceCny": 420,
+      "rating": 4.6
+    },
+    "davidoff||aniversario||no3": {
+      "brand": "Davidoff",
+      "series": "Aniversario",
+      "vitola": "No.3",
+      "priceCny": 480,
+      "rating": 4.6
+    },
+    "davidoff||aniversario||no1": {
+      "brand": "Davidoff",
+      "series": "Aniversario",
+      "vitola": "No.1",
+      "priceCny": 520,
+      "rating": 4.6
+    },
+    "davidoff||nicaragua||robusto": {
+      "brand": "Davidoff",
+      "series": "Nicaragua",
+      "vitola": "Robusto",
+      "priceCny": 340,
+      "rating": 4.4
+    },
+    "davidoff||nicaragua||toro": {
+      "brand": "Davidoff",
+      "series": "Nicaragua",
+      "vitola": "Toro",
+      "priceCny": 380,
+      "rating": 4.4
+    },
+    "davidoff||escurio||robusto": {
+      "brand": "Davidoff",
+      "series": "Escurio",
+      "vitola": "Robusto",
+      "priceCny": 320,
+      "rating": 4.3
+    },
+    "davidoff||escurio||toro": {
+      "brand": "Davidoff",
+      "series": "Escurio",
+      "vitola": "Toro",
+      "priceCny": 350,
+      "rating": 4.3
+    },
+    "davidoff||signature||no2": {
+      "brand": "Davidoff",
+      "series": "Signature",
+      "vitola": "No.2",
+      "priceCny": 180,
       "rating": 3.9
     },
-    "diplomaticos||||no2": {
+    "davidoff||signature||toro": {
+      "brand": "Davidoff",
+      "series": "Signature",
+      "vitola": "Toro",
+      "priceCny": 260,
+      "rating": 4.1
+    },
+    "davidoff||coloradoclaro||robusto": {
+      "brand": "Davidoff",
+      "series": "Colorado Claro",
+      "vitola": "Robusto",
+      "priceCny": 340,
+      "rating": 4.4
+    },
+    "diplomaticos||clasica||no2": {
       "brand": "Diplomáticos",
-      "series": "",
+      "series": "Clásica",
       "vitola": "No.2",
       "priceCny": 880,
       "rating": 4
     },
-    "diplomaticos||||no4": {
+    "diplomaticos||clasica||no4": {
       "brand": "Diplomáticos",
-      "series": "",
+      "series": "Clásica",
       "vitola": "No.4",
       "priceCny": 680,
       "rating": 3.9
     },
-    "diplomaticos||||no5": {
+    "diplomaticos||clasica||no5": {
       "brand": "Diplomáticos",
-      "series": "",
+      "series": "Clásica",
       "vitola": "No.5",
       "priceCny": 480,
       "rating": 3.8
     },
-    "lagloriacubana||||medailledorno1": {
-      "brand": "La Gloria Cubana",
-      "series": "",
-      "vitola": "Medaille d'Or No.1",
-      "priceCny": 980,
-      "rating": 4
+    "drewestate||ligaprivada||no9robusto": {
+      "brand": "Drew Estate",
+      "series": "Liga Privada",
+      "vitola": "No.9 Robusto",
+      "priceCny": 220,
+      "rating": 4.6
     },
-    "lagloriacubana||||medailledorno2": {
-      "brand": "La Gloria Cubana",
-      "series": "",
-      "vitola": "Medaille d'Or No.2",
+    "drewestate||ligaprivada||t52": {
+      "brand": "Drew Estate",
+      "series": "Liga Privada",
+      "vitola": "T52",
+      "priceCny": 230,
+      "rating": 4.6
+    },
+    "drewestate||ligaprivada||unicoserie": {
+      "brand": "Drew Estate",
+      "series": "Liga Privada",
+      "vitola": "Unico Serie",
+      "priceCny": 260,
+      "rating": 4.6
+    },
+    "drewestate||undercrown||shaderobusto": {
+      "brand": "Drew Estate",
+      "series": "Undercrown",
+      "vitola": "Shade Robusto",
+      "priceCny": 120,
+      "rating": 4.1
+    },
+    "drewestate||undercrown||toro": {
+      "brand": "Drew Estate",
+      "series": "Undercrown",
+      "vitola": "Toro",
+      "priceCny": 130,
+      "rating": 4.2
+    },
+    "drewestate||nicarustica||elbrujito": {
+      "brand": "Drew Estate",
+      "series": "Nica Rustica",
+      "vitola": "El Brujito",
+      "priceCny": 110,
+      "rating": 4.2
+    },
+    "drewestate||herreraesteli||robusto": {
+      "brand": "Drew Estate",
+      "series": "Herrera Esteli",
+      "vitola": "Robusto",
+      "priceCny": 140,
+      "rating": 4.3
+    },
+    "drewestate||herreraesteli||toro": {
+      "brand": "Drew Estate",
+      "series": "Herrera Esteli",
+      "vitola": "Toro",
+      "priceCny": 150,
+      "rating": 4.3
+    },
+    "elreydelmundo||clasica||choixsupreme": {
+      "brand": "El Rey del Mundo",
+      "series": "Clásica",
+      "vitola": "Choix Supreme",
+      "priceCny": 680,
+      "rating": 3.9
+    },
+    "elreydelmundo||clasica||tainos": {
+      "brand": "El Rey del Mundo",
+      "series": "Clásica",
+      "vitola": "Tainos",
+      "priceCny": 980,
+      "rating": 3.9
+    },
+    "elreydelmundo||clasica||robustos": {
+      "brand": "El Rey del Mundo",
+      "series": "Clásica",
+      "vitola": "Robustos",
       "priceCny": 720,
       "rating": 3.9
     },
-    "porlarranaga||||petitcoronas": {
-      "brand": "Por Larrañaga",
-      "series": "",
-      "vitola": "Petit Coronas",
+    "epcarrillo||pledge||toro": {
+      "brand": "E.P. Carrillo",
+      "series": "Pledge",
+      "vitola": "Toro",
+      "priceCny": 190,
+      "rating": 4.6
+    },
+    "epcarrillo||encore||toro": {
+      "brand": "E.P. Carrillo",
+      "series": "Encore",
+      "vitola": "Toro",
+      "priceCny": 180,
+      "rating": 4.5
+    },
+    "epcarrillo||lahistoria||toro": {
+      "brand": "E.P. Carrillo",
+      "series": "La Historia",
+      "vitola": "Toro",
+      "priceCny": 170,
+      "rating": 4.5
+    },
+    "foundation||tabernacle||toro": {
+      "brand": "Foundation",
+      "series": "Tabernacle",
+      "vitola": "Toro",
+      "priceCny": 190,
+      "rating": 4.6
+    },
+    "foundation||charteroak||toro": {
+      "brand": "Foundation",
+      "series": "Charter Oak",
+      "vitola": "Toro",
+      "priceCny": 110,
+      "rating": 4.2
+    },
+    "hoyodemonterrey||epicure||epicureno1": {
+      "brand": "Hoyo de Monterrey",
+      "series": "Epicure",
+      "vitola": "Epicure No.1",
+      "priceCny": 720,
+      "rating": 4.1
+    },
+    "hoyodemonterrey||epicure||epicureno2": {
+      "brand": "Hoyo de Monterrey",
+      "series": "Epicure",
+      "vitola": "Epicure No.2",
+      "priceCny": 680,
+      "rating": 4.2
+    },
+    "hoyodemonterrey||epicure||epicureespecial": {
+      "brand": "Hoyo de Monterrey",
+      "series": "Epicure",
+      "vitola": "Epicure Especial",
+      "priceCny": 880,
+      "rating": 4.3
+    },
+    "hoyodemonterrey||epicure||epicuredeluxe": {
+      "brand": "Hoyo de Monterrey",
+      "series": "Epicure",
+      "vitola": "Epicure de Luxe",
+      "priceCny": 780,
+      "rating": 4.2
+    },
+    "hoyodemonterrey||epicure||petitrobusto": {
+      "brand": "Hoyo de Monterrey",
+      "series": "Epicure",
+      "vitola": "Petit Robusto",
+      "priceCny": 520,
+      "rating": 4.1
+    },
+    "hoyodemonterrey||clasica||doublecorona": {
+      "brand": "Hoyo de Monterrey",
+      "series": "Clásica",
+      "vitola": "Double Corona",
+      "priceCny": 1280,
+      "rating": 4.3
+    },
+    "hoyodemonterrey||clasica||churchill": {
+      "brand": "Hoyo de Monterrey",
+      "series": "Clásica",
+      "vitola": "Churchill",
+      "priceCny": 980,
+      "rating": 4.2
+    },
+    "hoyodemonterrey||lehoyo||lehoyodesanjuan": {
+      "brand": "Hoyo de Monterrey",
+      "series": "Le Hoyo",
+      "vitola": "Le Hoyo de San Juan",
+      "priceCny": 1080,
+      "rating": 4.3
+    },
+    "hoyodemonterrey||lehoyo||lehoyoderioseco": {
+      "brand": "Hoyo de Monterrey",
+      "series": "Le Hoyo",
+      "vitola": "Le Hoyo de Rio Seco",
+      "priceCny": 1180,
+      "rating": 4.3
+    },
+    "hupmann||clasica||magnum46": {
+      "brand": "H.Upmann",
+      "series": "Clásica",
+      "vitola": "Magnum 46",
+      "priceCny": 880,
+      "rating": 4.3
+    },
+    "hupmann||clasica||magnum50": {
+      "brand": "H.Upmann",
+      "series": "Clásica",
+      "vitola": "Magnum 50",
+      "priceCny": 980,
+      "rating": 4.3
+    },
+    "hupmann||magnum||magnum54": {
+      "brand": "H.Upmann",
+      "series": "Magnum",
+      "vitola": "Magnum 54",
+      "priceCny": 1080,
+      "rating": 4.3
+    },
+    "hupmann||clasica||connoisseurno1": {
+      "brand": "H.Upmann",
+      "series": "Clásica",
+      "vitola": "Connoisseur No.1",
+      "priceCny": 780,
+      "rating": 4.2
+    },
+    "hupmann||clasica||connoisseurno2": {
+      "brand": "H.Upmann",
+      "series": "Clásica",
+      "vitola": "Connoisseur No.2",
+      "priceCny": 880,
+      "rating": 4.2
+    },
+    "hupmann||clasica||connoisseurno3": {
+      "brand": "H.Upmann",
+      "series": "Clásica",
+      "vitola": "Connoisseur No.3",
+      "priceCny": 680,
+      "rating": 4.1
+    },
+    "hupmann||clasica||sirwinston": {
+      "brand": "H.Upmann",
+      "series": "Clásica",
+      "vitola": "Sir Winston",
+      "priceCny": 1680,
+      "rating": 4.5
+    },
+    "hupmann||clasica||halfcorona": {
+      "brand": "H.Upmann",
+      "series": "Clásica",
+      "vitola": "Half Corona",
+      "priceCny": 420,
+      "rating": 4.1
+    },
+    "hupmann||clasica||majestic": {
+      "brand": "H.Upmann",
+      "series": "Clásica",
+      "vitola": "Majestic",
       "priceCny": 520,
       "rating": 4
     },
-    "porlarranaga||||montecarlos": {
-      "brand": "Por Larrañaga",
-      "series": "",
-      "vitola": "Montecarlos",
-      "priceCny": 580,
-      "rating": 3.9
-    },
-    "porlarranaga||||picadores": {
-      "brand": "Por Larrañaga",
-      "series": "",
-      "vitola": "Picadores",
-      "priceCny": 620,
+    "hupmann||clasica||regalias": {
+      "brand": "H.Upmann",
+      "series": "Clásica",
+      "vitola": "Regalias",
+      "priceCny": 560,
       "rating": 4
     },
-    "vegueros||||tapados": {
-      "brand": "Vegueros",
-      "series": "",
-      "vitola": "Tapados",
-      "priceCny": 380,
-      "rating": 3.8
+    "hupmann||clasica||coronasmajor": {
+      "brand": "H.Upmann",
+      "series": "Clásica",
+      "vitola": "Coronas Major",
+      "priceCny": 620,
+      "rating": 4.1
     },
-    "vegueros||||entretiempos": {
-      "brand": "Vegueros",
-      "series": "",
-      "vitola": "Entretiempos",
-      "priceCny": 420,
-      "rating": 3.8
+    "hupmann||clasica||coronasjunior": {
+      "brand": "H.Upmann",
+      "series": "Clásica",
+      "vitola": "Coronas Junior",
+      "priceCny": 480,
+      "rating": 4
     },
-    "vegueros||||mananitas": {
-      "brand": "Vegueros",
-      "series": "",
-      "vitola": "Mañanitas",
-      "priceCny": 360,
-      "rating": 3.7
+    "juanlopez||seleccionno1||seleccionno1": {
+      "brand": "Juan López",
+      "series": "Selección No.1",
+      "vitola": "Selección No.1",
+      "priceCny": 680,
+      "rating": 4.2
     },
-    "laflordecano||||petitcoronas": {
+    "juanlopez||seleccionno2||seleccionno2": {
+      "brand": "Juan López",
+      "series": "Selección No.2",
+      "vitola": "Selección No.2",
+      "priceCny": 720,
+      "rating": 4.2
+    },
+    "juanlopez||seleccionno4||seleccionno4": {
+      "brand": "Juan López",
+      "series": "Selección No.4",
+      "vitola": "Selección No.4",
+      "priceCny": 820,
+      "rating": 4.2
+    },
+    "laaurora||1903edition||robusto": {
+      "brand": "La Aurora",
+      "series": "1903 Edition",
+      "vitola": "Robusto",
+      "priceCny": 130,
+      "rating": 4.2
+    },
+    "laaurora||107||robusto": {
+      "brand": "La Aurora",
+      "series": "107",
+      "vitola": "Robusto",
+      "priceCny": 120,
+      "rating": 4.1
+    },
+    "laflordecano||clasica||petitcoronas": {
       "brand": "La Flor de Cano",
-      "series": "",
+      "series": "Clásica",
       "vitola": "Petit Coronas",
       "priceCny": 420,
       "rating": 3.7
     },
-    "laflordecano||||coronas": {
+    "laflordecano||clasica||coronas": {
       "brand": "La Flor de Cano",
-      "series": "",
+      "series": "Clásica",
       "vitola": "Coronas",
       "priceCny": 480,
       "rating": 3.7
     },
-    "porlarranaga||||galanes": {
-      "brand": "Por Larrañaga",
-      "series": "",
-      "vitola": "Galanes",
-      "priceCny": 680,
+    "laflordominicana||doubleligero||toro": {
+      "brand": "La Flor Dominicana",
+      "series": "Double Ligero",
+      "vitola": "Toro",
+      "priceCny": 160,
+      "rating": 4.5
+    },
+    "laflordominicana||airbender||toro": {
+      "brand": "La Flor Dominicana",
+      "series": "Air Bender",
+      "vitola": "Toro",
+      "priceCny": 170,
+      "rating": 4.5
+    },
+    "lagloriacubana||clasica||medailledorno1": {
+      "brand": "La Gloria Cubana",
+      "series": "Clásica",
+      "vitola": "Medaille d'Or No.1",
+      "priceCny": 980,
       "rating": 4
     },
-    "vegueros||||centrofinos": {
-      "brand": "Vegueros",
-      "series": "",
-      "vitola": "Centrofinos",
-      "priceCny": 460,
-      "rating": 3.8
+    "lagloriacubana||clasica||medailledorno2": {
+      "brand": "La Gloria Cubana",
+      "series": "Clásica",
+      "vitola": "Medaille d'Or No.2",
+      "priceCny": 720,
+      "rating": 3.9
+    },
+    "montecristo||clasica||no1": {
+      "brand": "Montecristo",
+      "series": "Clásica",
+      "vitola": "No.1",
+      "priceCny": 1280,
+      "rating": 4.4
+    },
+    "montecristo||clasica||no2": {
+      "brand": "Montecristo",
+      "series": "Clásica",
+      "vitola": "No.2",
+      "priceCny": 980,
+      "rating": 4.5
+    },
+    "montecristo||clasica||no3": {
+      "brand": "Montecristo",
+      "series": "Clásica",
+      "vitola": "No.3",
+      "priceCny": 780,
+      "rating": 4.2
+    },
+    "montecristo||clasica||no4": {
+      "brand": "Montecristo",
+      "series": "Clásica",
+      "vitola": "No.4",
+      "priceCny": 680,
+      "rating": 4.5
+    },
+    "montecristo||clasica||no5": {
+      "brand": "Montecristo",
+      "series": "Clásica",
+      "vitola": "No.5",
+      "priceCny": 520,
+      "rating": 4.1
+    },
+    "montecristo||edmundo||edmundo": {
+      "brand": "Montecristo",
+      "series": "Edmundo",
+      "vitola": "Edmundo",
+      "priceCny": 880,
+      "rating": 4.4
+    },
+    "montecristo||edmundo||petitedmundo": {
+      "brand": "Montecristo",
+      "series": "Edmundo",
+      "vitola": "Petit Edmundo",
+      "priceCny": 720,
+      "rating": 4.4
+    },
+    "montecristo||linea||doubleedmundo": {
+      "brand": "Montecristo",
+      "series": "Linea",
+      "vitola": "Double Edmundo",
+      "priceCny": 1180,
+      "rating": 4.5
+    },
+    "montecristo||1935series||maltes": {
+      "brand": "Montecristo",
+      "series": "1935 Series",
+      "vitola": "Maltés",
+      "priceCny": 1980,
+      "rating": 4.7
+    },
+    "montecristo||1935series||dumas": {
+      "brand": "Montecristo",
+      "series": "1935 Series",
+      "vitola": "Dumas",
+      "priceCny": 1680,
+      "rating": 4.6
+    },
+    "montecristo||1935series||leyenda": {
+      "brand": "Montecristo",
+      "series": "1935 Series",
+      "vitola": "Leyenda",
+      "priceCny": 2280,
+      "rating": 4.6
+    },
+    "montecristo||open||eagle": {
+      "brand": "Montecristo",
+      "series": "Open",
+      "vitola": "Eagle",
+      "priceCny": 880,
+      "rating": 4.2
+    },
+    "montecristo||open||master": {
+      "brand": "Montecristo",
+      "series": "Open",
+      "vitola": "Master",
+      "priceCny": 680,
+      "rating": 4.1
+    },
+    "montecristo||open||regata": {
+      "brand": "Montecristo",
+      "series": "Open",
+      "vitola": "Regata",
+      "priceCny": 780,
+      "rating": 4.1
+    },
+    "myfather||lebijou1922||torpedo": {
+      "brand": "My Father",
+      "series": "Le Bijou 1922",
+      "vitola": "Torpedo",
+      "priceCny": 180,
+      "rating": 4.5
+    },
+    "myfather||lebijou1922||toro": {
+      "brand": "My Father",
+      "series": "Le Bijou 1922",
+      "vitola": "Toro",
+      "priceCny": 170,
+      "rating": 4.5
+    },
+    "myfather||thejudge||toro": {
+      "brand": "My Father",
+      "series": "The Judge",
+      "vitola": "Toro",
+      "priceCny": 200,
+      "rating": 4.6
+    },
+    "myfather||flordelasantillas||robusto": {
+      "brand": "My Father",
+      "series": "Flor de las Antillas",
+      "vitola": "Robusto",
+      "priceCny": 140,
+      "rating": 4.3
+    },
+    "myfather||flordelasantillas||toro": {
+      "brand": "My Father",
+      "series": "Flor de las Antillas",
+      "vitola": "Toro",
+      "priceCny": 150,
+      "rating": 4.3
+    },
+    "myfather||jaimegarcia||robusto": {
+      "brand": "My Father",
+      "series": "Jaime Garcia",
+      "vitola": "Robusto",
+      "priceCny": 160,
+      "rating": 4.4
+    },
+    "myfather||laopulencia||toro": {
+      "brand": "My Father",
+      "series": "La Opulencia",
+      "vitola": "Toro",
+      "priceCny": 210,
+      "rating": 4.6
+    },
+    "oliva||serievmelanio||melaniorobusto": {
+      "brand": "Oliva",
+      "series": "Serie V Melanio",
+      "vitola": "Melanio Robusto",
+      "priceCny": 180,
+      "rating": 4.5
+    },
+    "oliva||seriev||doublerobusto": {
+      "brand": "Oliva",
+      "series": "Serie V",
+      "vitola": "Double Robusto",
+      "priceCny": 160,
+      "rating": 4.5
+    },
+    "oliva||seriev||torpedo": {
+      "brand": "Oliva",
+      "series": "Serie V",
+      "vitola": "Torpedo",
+      "priceCny": 170,
+      "rating": 4.5
+    },
+    "oliva||seriev||churchill": {
+      "brand": "Oliva",
+      "series": "Serie V",
+      "vitola": "Churchill",
+      "priceCny": 190,
+      "rating": 4.4
+    },
+    "oliva||seriev||lancero": {
+      "brand": "Oliva",
+      "series": "Serie V",
+      "vitola": "Lancero",
+      "priceCny": 150,
+      "rating": 4.4
+    },
+    "oliva||serievmelanio||melaniochurchill": {
+      "brand": "Oliva",
+      "series": "Serie V Melanio",
+      "vitola": "Melanio Churchill",
+      "priceCny": 220,
+      "rating": 4.5
+    },
+    "oliva||serievmelanio||melaniotorpedo": {
+      "brand": "Oliva",
+      "series": "Serie V Melanio",
+      "vitola": "Melanio Torpedo",
+      "priceCny": 210,
+      "rating": 4.5
+    },
+    "oliva||serieo||serieorobusto": {
+      "brand": "Oliva",
+      "series": "Serie O",
+      "vitola": "Serie O Robusto",
+      "priceCny": 110,
+      "rating": 4.2
+    },
+    "oliva||serieo||serieotoro": {
+      "brand": "Oliva",
+      "series": "Serie O",
+      "vitola": "Serie O Toro",
+      "priceCny": 120,
+      "rating": 4.2
+    },
+    "oliva||serieg||seriegrobusto": {
+      "brand": "Oliva",
+      "series": "Serie G",
+      "vitola": "Serie G Robusto",
+      "priceCny": 120,
+      "rating": 4.1
+    },
+    "oliva||serieg||seriegtoro": {
+      "brand": "Oliva",
+      "series": "Serie G",
+      "vitola": "Serie G Toro",
+      "priceCny": 130,
+      "rating": 4.1
+    },
+    "oliva||connecticutreserve||robusto": {
+      "brand": "Oliva",
+      "series": "Connecticut Reserve",
+      "vitola": "Robusto",
+      "priceCny": 100,
+      "rating": 4
+    },
+    "oliva||connecticutreserve||toro": {
+      "brand": "Oliva",
+      "series": "Connecticut Reserve",
+      "vitola": "Toro",
+      "priceCny": 110,
+      "rating": 4
     },
     "padron||1964anniversary||exclusivo": {
       "brand": "Padrón",
@@ -1131,208 +1257,390 @@
       "priceCny": 1420,
       "rating": 4.8
     },
-    "oliva||serievmelanio||melaniorobusto": {
-      "brand": "Oliva",
-      "series": "Serie V Melanio",
-      "vitola": "Melanio Robusto",
-      "priceCny": 180,
-      "rating": 4.5
+    "partagas||seried||no4": {
+      "brand": "Partagás",
+      "series": "Serie D",
+      "vitola": "No.4",
+      "priceCny": 880,
+      "rating": 4.3
     },
-    "oliva||seriev||doublerobusto": {
-      "brand": "Oliva",
-      "series": "Serie V",
-      "vitola": "Double Robusto",
-      "priceCny": 160,
-      "rating": 4.5
+    "partagas||seried||no5": {
+      "brand": "Partagás",
+      "series": "Serie D",
+      "vitola": "No.5",
+      "priceCny": 620,
+      "rating": 4.3
     },
-    "oliva||seriev||torpedo": {
-      "brand": "Oliva",
-      "series": "Serie V",
-      "vitola": "Torpedo",
-      "priceCny": 170,
-      "rating": 4.5
-    },
-    "oliva||seriev||churchill": {
-      "brand": "Oliva",
-      "series": "Serie V",
-      "vitola": "Churchill",
-      "priceCny": 190,
-      "rating": 4.4
-    },
-    "oliva||seriev||lancero": {
-      "brand": "Oliva",
-      "series": "Serie V",
-      "vitola": "Lancero",
-      "priceCny": 150,
-      "rating": 4.4
-    },
-    "oliva||serievmelanio||melaniochurchill": {
-      "brand": "Oliva",
-      "series": "Serie V Melanio",
-      "vitola": "Melanio Churchill",
-      "priceCny": 220,
-      "rating": 4.5
-    },
-    "oliva||serievmelanio||melaniotorpedo": {
-      "brand": "Oliva",
-      "series": "Serie V Melanio",
-      "vitola": "Melanio Torpedo",
-      "priceCny": 210,
-      "rating": 4.5
-    },
-    "oliva||serievmelanio||melaniorobustomaduro": {
-      "brand": "Oliva",
-      "series": "Serie V Melanio",
-      "vitola": "Melanio Robusto Maduro",
-      "priceCny": 180,
-      "rating": 4.4
-    },
-    "oliva||serieo||serieorobusto": {
-      "brand": "Oliva",
-      "series": "Serie O",
-      "vitola": "Serie O Robusto",
-      "priceCny": 110,
+    "partagas||seried||no6": {
+      "brand": "Partagás",
+      "series": "Serie D",
+      "vitola": "No.6",
+      "priceCny": 520,
       "rating": 4.2
     },
-    "oliva||serieo||serieotoro": {
-      "brand": "Oliva",
-      "series": "Serie O",
-      "vitola": "Serie O Toro",
-      "priceCny": 120,
+    "partagas||seriee||no1": {
+      "brand": "Partagás",
+      "series": "Serie E",
+      "vitola": "No.1",
+      "priceCny": 1880,
+      "rating": 4.5
+    },
+    "partagas||seriee||no2": {
+      "brand": "Partagás",
+      "series": "Serie E",
+      "vitola": "No.2",
+      "priceCny": 1180,
       "rating": 4.2
     },
-    "oliva||serieg||seriegrobusto": {
-      "brand": "Oliva",
-      "series": "Serie G",
-      "vitola": "Serie G Robusto",
-      "priceCny": 120,
+    "partagas||seriep||no2": {
+      "brand": "Partagás",
+      "series": "Serie P",
+      "vitola": "No.2",
+      "priceCny": 980,
+      "rating": 4.3
+    },
+    "partagas||seriep||no2tubos": {
+      "brand": "Partagás",
+      "series": "Serie P",
+      "vitola": "No.2 Tubos",
+      "priceCny": 1020,
+      "rating": 4.3
+    },
+    "partagas||clasica||lusitanias": {
+      "brand": "Partagás",
+      "series": "Clásica",
+      "vitola": "Lusitanias",
+      "priceCny": 1680,
+      "rating": 4.6
+    },
+    "partagas||clasica||898": {
+      "brand": "Partagás",
+      "series": "Clásica",
+      "vitola": "8-9-8",
+      "priceCny": 1280,
+      "rating": 4.4
+    },
+    "partagas||clasica||coronassenior": {
+      "brand": "Partagás",
+      "series": "Clásica",
+      "vitola": "Coronas Senior",
+      "priceCny": 780,
+      "rating": 4.2
+    },
+    "partagas||clasica||superpartagas": {
+      "brand": "Partagás",
+      "series": "Clásica",
+      "vitola": "Super Partagás",
+      "priceCny": 820,
+      "rating": 4.2
+    },
+    "partagas||maduro||seriepno2maduro": {
+      "brand": "Partagás",
+      "series": "Maduro",
+      "vitola": "Série P No.2 Maduro",
+      "priceCny": 1180,
+      "rating": 4.4
+    },
+    "porlarranaga||clasica||petitcoronas": {
+      "brand": "Por Larrañaga",
+      "series": "Clásica",
+      "vitola": "Petit Coronas",
+      "priceCny": 520,
+      "rating": 4
+    },
+    "porlarranaga||clasica||montecarlos": {
+      "brand": "Por Larrañaga",
+      "series": "Clásica",
+      "vitola": "Montecarlos",
+      "priceCny": 580,
+      "rating": 3.9
+    },
+    "porlarranaga||clasica||picadores": {
+      "brand": "Por Larrañaga",
+      "series": "Clásica",
+      "vitola": "Picadores",
+      "priceCny": 620,
+      "rating": 4
+    },
+    "porlarranaga||galanes||galanes": {
+      "brand": "Por Larrañaga",
+      "series": "Galanes",
+      "vitola": "Galanes",
+      "priceCny": 680,
+      "rating": 4
+    },
+    "punch||clasica||doublecoronas": {
+      "brand": "Punch",
+      "series": "Clásica",
+      "vitola": "Double Coronas",
+      "priceCny": 1180,
       "rating": 4.1
     },
-    "oliva||serieg||seriegtoro": {
-      "brand": "Oliva",
-      "series": "Serie G",
-      "vitola": "Serie G Toro",
-      "priceCny": 130,
+    "punch||clasica||punchpunch": {
+      "brand": "Punch",
+      "series": "Clásica",
+      "vitola": "Punch Punch",
+      "priceCny": 720,
+      "rating": 4
+    },
+    "punch||clasica||coronations": {
+      "brand": "Punch",
+      "series": "Clásica",
+      "vitola": "Coronations",
+      "priceCny": 580,
+      "rating": 3.9
+    },
+    "punch||clasica||petitcoronas": {
+      "brand": "Punch",
+      "series": "Clásica",
+      "vitola": "Petit Coronas",
+      "priceCny": 480,
+      "rating": 3.9
+    },
+    "rafaelgonzalez||clasica||petitcoronas": {
+      "brand": "Rafael González",
+      "series": "Clásica",
+      "vitola": "Petit Coronas",
+      "priceCny": 480,
+      "rating": 3.9
+    },
+    "rafaelgonzalez||clasica||panetelasextra": {
+      "brand": "Rafael González",
+      "series": "Clásica",
+      "vitola": "Panetelas Extra",
+      "priceCny": 420,
+      "rating": 3.8
+    },
+    "rafaelgonzalez||clasica||coronasextra": {
+      "brand": "Rafael González",
+      "series": "Clásica",
+      "vitola": "Coronas Extra",
+      "priceCny": 520,
+      "rating": 3.9
+    },
+    "ramonallones||clasica||speciallyselected": {
+      "brand": "Ramon Allones",
+      "series": "Clásica",
+      "vitola": "Specially Selected",
+      "priceCny": 780,
+      "rating": 4.3
+    },
+    "ramonallones||clasica||gigantes": {
+      "brand": "Ramon Allones",
+      "series": "Clásica",
+      "vitola": "Gigantes",
+      "priceCny": 1380,
+      "rating": 4.3
+    },
+    "ramonallones||clasica||smallclubcoronas": {
+      "brand": "Ramon Allones",
+      "series": "Clásica",
+      "vitola": "Small Club Coronas",
+      "priceCny": 560,
       "rating": 4.1
     },
-    "oliva||connecticutreserve||robusto": {
-      "brand": "Oliva",
-      "series": "Connecticut Reserve",
+    "rockypatel||vintage1992||robusto": {
+      "brand": "Rocky Patel",
+      "series": "Vintage 1992",
+      "vitola": "Robusto",
+      "priceCny": 90,
+      "rating": 4
+    },
+    "rockypatel||vintage1990||robusto": {
+      "brand": "Rocky Patel",
+      "series": "Vintage 1990",
+      "vitola": "Robusto",
+      "priceCny": 95,
+      "rating": 4
+    },
+    "rockypatel||vintage1999||robusto": {
+      "brand": "Rocky Patel",
+      "series": "Vintage 1999",
       "vitola": "Robusto",
       "priceCny": 100,
-      "rating": 4
-    },
-    "oliva||connecticutreserve||toro": {
-      "brand": "Oliva",
-      "series": "Connecticut Reserve",
-      "vitola": "Toro",
-      "priceCny": 110,
-      "rating": 4
-    },
-    "drewestate||ligaprivada||no9robusto": {
-      "brand": "Drew Estate",
-      "series": "Liga Privada",
-      "vitola": "No.9 Robusto",
-      "priceCny": 220,
-      "rating": 4.6
-    },
-    "drewestate||ligaprivada||t52": {
-      "brand": "Drew Estate",
-      "series": "Liga Privada",
-      "vitola": "T52",
-      "priceCny": 230,
-      "rating": 4.6
-    },
-    "drewestate||ligaprivada||unicoserie": {
-      "brand": "Drew Estate",
-      "series": "Liga Privada",
-      "vitola": "Unico Serie",
-      "priceCny": 260,
-      "rating": 4.6
-    },
-    "drewestate||undercrown||shaderobusto": {
-      "brand": "Drew Estate",
-      "series": "Undercrown",
-      "vitola": "Shade Robusto",
-      "priceCny": 120,
       "rating": 4.1
     },
-    "drewestate||undercrown||toro": {
-      "brand": "Drew Estate",
-      "series": "Undercrown",
+    "rockypatel||decade||toro": {
+      "brand": "Rocky Patel",
+      "series": "Decade",
       "vitola": "Toro",
-      "priceCny": 130,
-      "rating": 4.2
+      "priceCny": 140,
+      "rating": 4.3
     },
-    "drewestate||nicarustica||elbrujito": {
-      "brand": "Drew Estate",
-      "series": "Nica Rustica",
-      "vitola": "El Brujito",
+    "rockypatel||edge||toro": {
+      "brand": "Rocky Patel",
+      "series": "Edge",
+      "vitola": "Toro",
       "priceCny": 110,
       "rating": 4.2
     },
-    "drewestate||herreraesteli||robusto": {
-      "brand": "Drew Estate",
-      "series": "Herrera Esteli",
+    "rockypatel||sungrown||robusto": {
+      "brand": "Rocky Patel",
+      "series": "Sun Grown",
       "vitola": "Robusto",
-      "priceCny": 140,
-      "rating": 4.3
+      "priceCny": 100,
+      "rating": 4.1
     },
-    "drewestate||herreraesteli||toro": {
-      "brand": "Drew Estate",
-      "series": "Herrera Esteli",
-      "vitola": "Toro",
+    "rockypatel||grandreserve||robusto": {
+      "brand": "Rocky Patel",
+      "series": "Grand Reserve",
+      "vitola": "Robusto",
       "priceCny": 150,
       "rating": 4.3
     },
-    "myfather||lebijou1922||torpedo": {
-      "brand": "My Father",
-      "series": "Le Bijou 1922",
-      "vitola": "Torpedo",
-      "priceCny": 180,
-      "rating": 4.5
-    },
-    "myfather||lebijou1922||toro": {
-      "brand": "My Father",
-      "series": "Le Bijou 1922",
-      "vitola": "Toro",
-      "priceCny": 170,
-      "rating": 4.5
-    },
-    "myfather||thejudge||toro": {
-      "brand": "My Father",
-      "series": "The Judge",
-      "vitola": "Toro",
-      "priceCny": 200,
-      "rating": 4.6
-    },
-    "myfather||flordelasantillas||robusto": {
-      "brand": "My Father",
-      "series": "Flor de las Antillas",
-      "vitola": "Robusto",
-      "priceCny": 140,
-      "rating": 4.3
-    },
-    "myfather||flordelasantillas||toro": {
-      "brand": "My Father",
-      "series": "Flor de las Antillas",
-      "vitola": "Toro",
-      "priceCny": 150,
-      "rating": 4.3
-    },
-    "myfather||jaimegarcia||robusto": {
-      "brand": "My Father",
-      "series": "Jaime Garcia",
-      "vitola": "Robusto",
-      "priceCny": 160,
+    "romeoyjulieta||clasica||churchill": {
+      "brand": "Romeo y Julieta",
+      "series": "Clásica",
+      "vitola": "Churchill",
+      "priceCny": 980,
       "rating": 4.4
     },
-    "myfather||laopulencia||toro": {
-      "brand": "My Father",
-      "series": "La Opulencia",
+    "romeoyjulieta||widechurchill||widechurchill": {
+      "brand": "Romeo y Julieta",
+      "series": "Wide Churchill",
+      "vitola": "Wide Churchill",
+      "priceCny": 880,
+      "rating": 4.4
+    },
+    "romeoyjulieta||clasica||exhibicionno4": {
+      "brand": "Romeo y Julieta",
+      "series": "Clásica",
+      "vitola": "Exhibición No.4",
+      "priceCny": 620,
+      "rating": 4.2
+    },
+    "romeoyjulieta||clasica||petitcoronas": {
+      "brand": "Romeo y Julieta",
+      "series": "Clásica",
+      "vitola": "Petit Coronas",
+      "priceCny": 480,
+      "rating": 4.1
+    },
+    "romeoyjulieta||clasica||coronas": {
+      "brand": "Romeo y Julieta",
+      "series": "Clásica",
+      "vitola": "Coronas",
+      "priceCny": 580,
+      "rating": 4.1
+    },
+    "romeoyjulieta||lineadeoro||nobles": {
+      "brand": "Romeo y Julieta",
+      "series": "Linea de Oro",
+      "vitola": "Nobles",
+      "priceCny": 1280,
+      "rating": 4.5
+    },
+    "romeoyjulieta||lineadeoro||hidalgos": {
+      "brand": "Romeo y Julieta",
+      "series": "Linea de Oro",
+      "vitola": "Hidalgos",
+      "priceCny": 1180,
+      "rating": 4.4
+    },
+    "romeoyjulieta||lineadeoro||dianas": {
+      "brand": "Romeo y Julieta",
+      "series": "Linea de Oro",
+      "vitola": "Dianas",
+      "priceCny": 1380,
+      "rating": 4.5
+    },
+    "romeoyjulieta||clasica||romeono1": {
+      "brand": "Romeo y Julieta",
+      "series": "Clásica",
+      "vitola": "Romeo No.1",
+      "priceCny": 520,
+      "rating": 4
+    },
+    "romeoyjulieta||clasica||romeono2": {
+      "brand": "Romeo y Julieta",
+      "series": "Clásica",
+      "vitola": "Romeo No.2",
+      "priceCny": 560,
+      "rating": 4
+    },
+    "romeoyjulieta||clasica||romeono3": {
+      "brand": "Romeo y Julieta",
+      "series": "Clásica",
+      "vitola": "Romeo No.3",
+      "priceCny": 420,
+      "rating": 3.9
+    },
+    "room101||daruma||toro": {
+      "brand": "Room101",
+      "series": "Daruma",
       "vitola": "Toro",
-      "priceCny": 210,
-      "rating": 4.6
+      "priceCny": 150,
+      "rating": 4.2
+    },
+    "saintluisrey||clasica||regios": {
+      "brand": "Saint Luis Rey",
+      "series": "Clásica",
+      "vitola": "Regios",
+      "priceCny": 580,
+      "rating": 4.1
+    },
+    "saintluisrey||clasica||seriea": {
+      "brand": "Saint Luis Rey",
+      "series": "Clásica",
+      "vitola": "Serie A",
+      "priceCny": 680,
+      "rating": 4.1
+    },
+    "saintluisrey||clasica||doublecoronas": {
+      "brand": "Saint Luis Rey",
+      "series": "Clásica",
+      "vitola": "Double Coronas",
+      "priceCny": 1180,
+      "rating": 4.2
+    },
+    "sanchopanza||clasica||belicosos": {
+      "brand": "Sancho Panza",
+      "series": "Clásica",
+      "vitola": "Belicosos",
+      "priceCny": 520,
+      "rating": 3.9
+    },
+    "sanchopanza||clasica||nonplus": {
+      "brand": "Sancho Panza",
+      "series": "Clásica",
+      "vitola": "Non Plus",
+      "priceCny": 620,
+      "rating": 3.9
+    },
+    "sanchopanza||clasica||coronas": {
+      "brand": "Sancho Panza",
+      "series": "Clásica",
+      "vitola": "Coronas",
+      "priceCny": 480,
+      "rating": 3.8
+    },
+    "sancristobal||lafuerza||lafuerza": {
+      "brand": "San Cristóbal",
+      "series": "La Fuerza",
+      "vitola": "La Fuerza",
+      "priceCny": 680,
+      "rating": 4
+    },
+    "sancristobal||elprincipe||elprincipe": {
+      "brand": "San Cristóbal",
+      "series": "El Príncipe",
+      "vitola": "El Príncipe",
+      "priceCny": 480,
+      "rating": 3.9
+    },
+    "sancristobal||lapunta||lapunta": {
+      "brand": "San Cristóbal",
+      "series": "La Punta",
+      "vitola": "La Punta",
+      "priceCny": 720,
+      "rating": 4
+    },
+    "sancristobal||mercaderes||mercaderes": {
+      "brand": "San Cristóbal",
+      "series": "Mercaderes",
+      "vitola": "Mercaderes",
+      "priceCny": 1080,
+      "rating": 4.1
     },
     "tatuaje||brownlabel||no3": {
       "brand": "Tatuaje",
@@ -1362,594 +1670,6 @@
       "priceCny": 180,
       "rating": 4.5
     },
-    "ajfernandez||sanlotano||toro": {
-      "brand": "A.J. Fernandez",
-      "series": "San Lotano",
-      "vitola": "Toro",
-      "priceCny": 130,
-      "rating": 4.2
-    },
-    "ajfernandez||newworld||toro": {
-      "brand": "A.J. Fernandez",
-      "series": "New World",
-      "vitola": "Toro",
-      "priceCny": 120,
-      "rating": 4.3
-    },
-    "ajfernandez||lastcall||robusto": {
-      "brand": "A.J. Fernandez",
-      "series": "Last Call",
-      "vitola": "Robusto",
-      "priceCny": 140,
-      "rating": 4.3
-    },
-    "ajfernandez||diasdegloria||toro": {
-      "brand": "A.J. Fernandez",
-      "series": "Dias de Gloria",
-      "vitola": "Toro",
-      "priceCny": 150,
-      "rating": 4.4
-    },
-    "perdomo||||20thanniversary": {
-      "brand": "Perdomo",
-      "series": "",
-      "vitola": "20th Anniversary",
-      "priceCny": 140,
-      "rating": 4.1
-    },
-    "perdomo||||10thanniversary": {
-      "brand": "Perdomo",
-      "series": "",
-      "vitola": "10th Anniversary",
-      "priceCny": 130,
-      "rating": 4.1
-    },
-    "perdomo||||lot23": {
-      "brand": "Perdomo",
-      "series": "",
-      "vitola": "Lot 23",
-      "priceCny": 110,
-      "rating": 4.1
-    },
-    "perdomo||||esteli": {
-      "brand": "Perdomo",
-      "series": "",
-      "vitola": "Esteli",
-      "priceCny": 150,
-      "rating": 4.4
-    },
-    "foundation||||tabernacletoro": {
-      "brand": "Foundation",
-      "series": "",
-      "vitola": "Tabernacle Toro",
-      "priceCny": 190,
-      "rating": 4.6
-    },
-    "foundation||||charteroaktoro": {
-      "brand": "Foundation",
-      "series": "",
-      "vitola": "Charter Oak Toro",
-      "priceCny": 110,
-      "rating": 4.2
-    },
-    "foundation||||highclerecastle": {
-      "brand": "Foundation",
-      "series": "",
-      "vitola": "Highclere Castle",
-      "priceCny": 160,
-      "rating": 4.2
-    },
-    "illusione||||epernay": {
-      "brand": "Illusione",
-      "series": "",
-      "vitola": "Epernay",
-      "priceCny": 160,
-      "rating": 4.4
-    },
-    "illusione||||88": {
-      "brand": "Illusione",
-      "series": "",
-      "vitola": "~88~",
-      "priceCny": 150,
-      "rating": 4.3
-    },
-    "warped||||flordelvalle": {
-      "brand": "Warped",
-      "series": "",
-      "vitola": "Flor del Valle",
-      "priceCny": 170,
-      "rating": 4.4
-    },
-    "warped||||maestrodeltiempo": {
-      "brand": "Warped",
-      "series": "",
-      "vitola": "Maestro del Tiempo",
-      "priceCny": 180,
-      "rating": 4.4
-    },
-    "arturofuente||||opusx": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Opus X",
-      "priceCny": 380,
-      "rating": 4.8
-    },
-    "arturofuente||||opusxrobusto": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Opus X Robusto",
-      "priceCny": 380,
-      "rating": 4.8
-    },
-    "arturofuente||||opusxdoublecorona": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Opus X Double Corona",
-      "priceCny": 520,
-      "rating": 4.8
-    },
-    "arturofuente||||opusxsuperbelicoso": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Opus X Super Belicoso",
-      "priceCny": 420,
-      "rating": 4.8
-    },
-    "arturofuente||||hemingwayshortstory": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Hemingway Short Story",
-      "priceCny": 120,
-      "rating": 4.3
-    },
-    "arturofuente||||hemingwaybestseller": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Hemingway Best Seller",
-      "priceCny": 110,
-      "rating": 4.3
-    },
-    "arturofuente||||hemingwaysignature": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Hemingway Signature",
-      "priceCny": 140,
-      "rating": 4.3
-    },
-    "arturofuente||||hemingwayclassic": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Hemingway Classic",
-      "priceCny": 170,
-      "rating": 4.3
-    },
-    "arturofuente||||doncarlosrobusto": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Don Carlos Robusto",
-      "priceCny": 180,
-      "rating": 4.4
-    },
-    "arturofuente||||doncarlosbelicoso": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Don Carlos Belicoso",
-      "priceCny": 190,
-      "rating": 4.4
-    },
-    "arturofuente||||anejono46": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Añejo No.46",
-      "priceCny": 220,
-      "rating": 4.5
-    },
-    "arturofuente||||anejono48": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Añejo No.48",
-      "priceCny": 260,
-      "rating": 4.5
-    },
-    "arturofuente||||florfina858": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Flor Fina 8-5-8",
-      "priceCny": 90,
-      "rating": 4.2
-    },
-    "arturofuente||||chateaufuente": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Chateau Fuente",
-      "priceCny": 80,
-      "rating": 3.9
-    },
-    "arturofuente||||doublechateau": {
-      "brand": "Arturo Fuente",
-      "series": "",
-      "vitola": "Double Chateau",
-      "priceCny": 110,
-      "rating": 4
-    },
-    "ashton||||vsg": {
-      "brand": "Ashton",
-      "series": "",
-      "vitola": "VSG",
-      "priceCny": 180,
-      "rating": 4.4
-    },
-    "ashton||||vsgrobusto": {
-      "brand": "Ashton",
-      "series": "",
-      "vitola": "VSG Robusto",
-      "priceCny": 180,
-      "rating": 4.4
-    },
-    "ashton||||vsgbelicosono1": {
-      "brand": "Ashton",
-      "series": "",
-      "vitola": "VSG Belicoso No.1",
-      "priceCny": 190,
-      "rating": 4.4
-    },
-    "ashton||||classicrobusto": {
-      "brand": "Ashton",
-      "series": "",
-      "vitola": "Classic Robusto",
-      "priceCny": 140,
-      "rating": 3.9
-    },
-    "ashton||||agedmadurorobusto": {
-      "brand": "Ashton",
-      "series": "",
-      "vitola": "Aged Maduro Robusto",
-      "priceCny": 170,
-      "rating": 4.2
-    },
-    "ashton||||cabinetbelicoso": {
-      "brand": "Ashton",
-      "series": "",
-      "vitola": "Cabinet Belicoso",
-      "priceCny": 160,
-      "rating": 4.1
-    },
-    "laaurora||||preferidos": {
-      "brand": "La Aurora",
-      "series": "",
-      "vitola": "Preferidos",
-      "priceCny": 110,
-      "rating": 4.1
-    },
-    "laaurora||||1903editionrobusto": {
-      "brand": "La Aurora",
-      "series": "",
-      "vitola": "1903 Edition Robusto",
-      "priceCny": 130,
-      "rating": 4.2
-    },
-    "laaurora||||107robusto": {
-      "brand": "La Aurora",
-      "series": "",
-      "vitola": "107 Robusto",
-      "priceCny": 120,
-      "rating": 4.1
-    },
-    "laflordominicana||||doubleligerotoro": {
-      "brand": "La Flor Dominicana",
-      "series": "",
-      "vitola": "Double Ligero Toro",
-      "priceCny": 160,
-      "rating": 4.5
-    },
-    "laflordominicana||||andalusianbull": {
-      "brand": "La Flor Dominicana",
-      "series": "",
-      "vitola": "Andalusian Bull",
-      "priceCny": 280,
-      "rating": 4.7
-    },
-    "laflordominicana||||airbendertoro": {
-      "brand": "La Flor Dominicana",
-      "series": "",
-      "vitola": "Air Bender Toro",
-      "priceCny": 170,
-      "rating": 4.5
-    },
-    "epcarrillo||||pledgetoro": {
-      "brand": "E.P. Carrillo",
-      "series": "",
-      "vitola": "Pledge Toro",
-      "priceCny": 190,
-      "rating": 4.6
-    },
-    "epcarrillo||||encoretoro": {
-      "brand": "E.P. Carrillo",
-      "series": "",
-      "vitola": "Encore Toro",
-      "priceCny": 180,
-      "rating": 4.5
-    },
-    "epcarrillo||||lahistoriatoro": {
-      "brand": "E.P. Carrillo",
-      "series": "",
-      "vitola": "La Historia Toro",
-      "priceCny": 170,
-      "rating": 4.5
-    },
-    "agingroom||||quattrotoro": {
-      "brand": "Aging Room",
-      "series": "",
-      "vitola": "Quattro Toro",
-      "priceCny": 150,
-      "rating": 4.3
-    },
-    "caldwell||||longlivetheking": {
-      "brand": "Caldwell",
-      "series": "",
-      "vitola": "Long Live the King",
-      "priceCny": 170,
-      "rating": 4.4
-    },
-    "room101||||darumatoro": {
-      "brand": "Room101",
-      "series": "",
-      "vitola": "Daruma Toro",
-      "priceCny": 150,
-      "rating": 4.2
-    },
-    "davidoff||||millenniumrobusto": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Millennium Robusto",
-      "priceCny": 380,
-      "rating": 4.6
-    },
-    "davidoff||||millenniumchurchill": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Millennium Churchill",
-      "priceCny": 460,
-      "rating": 4.6
-    },
-    "davidoff||||millenniumtoro": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Millennium Toro",
-      "priceCny": 420,
-      "rating": 4.6
-    },
-    "davidoff||||latehourchurchill": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Late Hour Churchill",
-      "priceCny": 520,
-      "rating": 4.7
-    },
-    "davidoff||||yamasapiramides": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Yamasa Piramides",
-      "priceCny": 420,
-      "rating": 4.5
-    },
-    "davidoff||||yamasatoro": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Yamasa Toro",
-      "priceCny": 440,
-      "rating": 4.5
-    },
-    "davidoff||||grandcruno3": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Grand Cru No.3",
-      "priceCny": 280,
-      "rating": 4.3
-    },
-    "davidoff||||grandcruno1": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Grand Cru No.1",
-      "priceCny": 320,
-      "rating": 4.4
-    },
-    "davidoff||||grandcruno2": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Grand Cru No.2",
-      "priceCny": 300,
-      "rating": 4.3
-    },
-    "davidoff||||grandcruno4": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Grand Cru No.4",
-      "priceCny": 260,
-      "rating": 4.2
-    },
-    "davidoff||||winstonchurchillchurchill": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Winston Churchill Churchill",
-      "priceCny": 460,
-      "rating": 4.6
-    },
-    "davidoff||||winstonchurchilltoro": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Winston Churchill Toro",
-      "priceCny": 420,
-      "rating": 4.6
-    },
-    "davidoff||||aniversariono3": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Aniversario No.3",
-      "priceCny": 480,
-      "rating": 4.6
-    },
-    "davidoff||||aniversariono1": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Aniversario No.1",
-      "priceCny": 520,
-      "rating": 4.6
-    },
-    "davidoff||||nicaraguarobusto": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Nicaragua Robusto",
-      "priceCny": 340,
-      "rating": 4.4
-    },
-    "davidoff||||nicaraguatoro": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Nicaragua Toro",
-      "priceCny": 380,
-      "rating": 4.4
-    },
-    "davidoff||||escuriorobusto": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Escurio Robusto",
-      "priceCny": 320,
-      "rating": 4.3
-    },
-    "davidoff||||escuriotoro": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Escurio Toro",
-      "priceCny": 350,
-      "rating": 4.3
-    },
-    "davidoff||||signatureno2": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Signature No.2",
-      "priceCny": 180,
-      "rating": 3.9
-    },
-    "davidoff||||signaturetoro": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Signature Toro",
-      "priceCny": 260,
-      "rating": 4.1
-    },
-    "davidoff||||coloradoclarorobusto": {
-      "brand": "Davidoff",
-      "series": "",
-      "vitola": "Colorado Claro Robusto",
-      "priceCny": 340,
-      "rating": 4.4
-    },
-    "camacho||||corojotoro": {
-      "brand": "Camacho",
-      "series": "",
-      "vitola": "Corojo Toro",
-      "priceCny": 120,
-      "rating": 4.2
-    },
-    "camacho||||triplemadurotoro": {
-      "brand": "Camacho",
-      "series": "",
-      "vitola": "Triple Maduro Toro",
-      "priceCny": 140,
-      "rating": 4.4
-    },
-    "camacho||||connecticutrobusto": {
-      "brand": "Camacho",
-      "series": "",
-      "vitola": "Connecticut Robusto",
-      "priceCny": 100,
-      "rating": 3.9
-    },
-    "camacho||||ecuadortoro": {
-      "brand": "Camacho",
-      "series": "",
-      "vitola": "Ecuador Toro",
-      "priceCny": 120,
-      "rating": 4.1
-    },
-    "rockypatel||||vintage1992robusto": {
-      "brand": "Rocky Patel",
-      "series": "",
-      "vitola": "Vintage 1992 Robusto",
-      "priceCny": 90,
-      "rating": 4
-    },
-    "rockypatel||||vintage1990robusto": {
-      "brand": "Rocky Patel",
-      "series": "",
-      "vitola": "Vintage 1990 Robusto",
-      "priceCny": 95,
-      "rating": 4
-    },
-    "rockypatel||||vintage1999robusto": {
-      "brand": "Rocky Patel",
-      "series": "",
-      "vitola": "Vintage 1999 Robusto",
-      "priceCny": 100,
-      "rating": 4.1
-    },
-    "rockypatel||||decadetoro": {
-      "brand": "Rocky Patel",
-      "series": "",
-      "vitola": "Decade Toro",
-      "priceCny": 140,
-      "rating": 4.3
-    },
-    "rockypatel||||edgetoro": {
-      "brand": "Rocky Patel",
-      "series": "",
-      "vitola": "Edge Toro",
-      "priceCny": 110,
-      "rating": 4.2
-    },
-    "rockypatel||||sungrownrobusto": {
-      "brand": "Rocky Patel",
-      "series": "",
-      "vitola": "Sun Grown Robusto",
-      "priceCny": 100,
-      "rating": 4.1
-    },
-    "rockypatel||||grandreserverobusto": {
-      "brand": "Rocky Patel",
-      "series": "",
-      "vitola": "Grand Reserve Robusto",
-      "priceCny": 150,
-      "rating": 4.3
-    },
-    "cle||||connecticutrobusto": {
-      "brand": "CLE",
-      "series": "",
-      "vitola": "Connecticut Robusto",
-      "priceCny": 70,
-      "rating": 3.8
-    },
-    "cle||||corojorobusto": {
-      "brand": "CLE",
-      "series": "",
-      "vitola": "Corojo Robusto",
-      "priceCny": 85,
-      "rating": 4
-    },
-    "cle||||habanorobusto": {
-      "brand": "CLE",
-      "series": "",
-      "vitola": "Habano Robusto",
-      "priceCny": 90,
-      "rating": 4.1
-    },
-    "cle||||prizefighter": {
-      "brand": "CLE",
-      "series": "",
-      "vitola": "Prize Fighter",
-      "priceCny": 95,
-      "rating": 4.1
-    },
     "tatuaje||miami||robusto": {
       "brand": "Tatuaje",
       "series": "Miami",
@@ -1963,6 +1683,125 @@
       "vitola": "Toro",
       "priceCny": 180,
       "rating": 4.5
+    },
+    "trinidad||fundadores||fundadores": {
+      "brand": "Trinidad",
+      "series": "Fundadores",
+      "vitola": "Fundadores",
+      "priceCny": 1980,
+      "rating": 4.6
+    },
+    "trinidad||vigia||vigia": {
+      "brand": "Trinidad",
+      "series": "Vigía",
+      "vitola": "Vigía",
+      "priceCny": 1280,
+      "rating": 4.5
+    },
+    "trinidad||reyes||reyes": {
+      "brand": "Trinidad",
+      "series": "Reyes",
+      "vitola": "Reyes",
+      "priceCny": 880,
+      "rating": 4.4
+    },
+    "trinidad||coloniales||coloniales": {
+      "brand": "Trinidad",
+      "series": "Coloniales",
+      "vitola": "Coloniales",
+      "priceCny": 1080,
+      "rating": 4.4
+    },
+    "trinidad||robustosextra||robustosextra": {
+      "brand": "Trinidad",
+      "series": "Robustos Extra",
+      "vitola": "Robustos Extra",
+      "priceCny": 1480,
+      "rating": 4.5
+    },
+    "trinidad||topes||topes": {
+      "brand": "Trinidad",
+      "series": "Topes",
+      "vitola": "Topes",
+      "priceCny": 1380,
+      "rating": 4.4
+    },
+    "trinidad||esmeralda||esmeralda": {
+      "brand": "Trinidad",
+      "series": "Esmeralda",
+      "vitola": "Esmeralda",
+      "priceCny": 1280,
+      "rating": 4.4
+    },
+    "trinidad||medialuna||medialuna": {
+      "brand": "Trinidad",
+      "series": "Media Luna",
+      "vitola": "Media Luna",
+      "priceCny": 980,
+      "rating": 4.3
+    },
+    "trinidad||latrova||latrova": {
+      "brand": "Trinidad",
+      "series": "La Trova",
+      "vitola": "La Trova",
+      "priceCny": 1880,
+      "rating": 4.6
+    },
+    "vegasrobaina||clasica||famosos": {
+      "brand": "Vegas Robaina",
+      "series": "Clásica",
+      "vitola": "Famosos",
+      "priceCny": 780,
+      "rating": 4.1
+    },
+    "vegasrobaina||clasica||donalejandro": {
+      "brand": "Vegas Robaina",
+      "series": "Clásica",
+      "vitola": "Don Alejandro",
+      "priceCny": 1480,
+      "rating": 4.3
+    },
+    "vegasrobaina||clasica||unicos": {
+      "brand": "Vegas Robaina",
+      "series": "Clásica",
+      "vitola": "Unicos",
+      "priceCny": 880,
+      "rating": 4.1
+    },
+    "vegasrobaina||clasica||clasicos": {
+      "brand": "Vegas Robaina",
+      "series": "Clásica",
+      "vitola": "Clásicos",
+      "priceCny": 980,
+      "rating": 4.1
+    },
+    "vegueros||clasica||tapados": {
+      "brand": "Vegueros",
+      "series": "Clásica",
+      "vitola": "Tapados",
+      "priceCny": 380,
+      "rating": 3.8
+    },
+    "vegueros||clasica||entretiempos": {
+      "brand": "Vegueros",
+      "series": "Clásica",
+      "vitola": "Entretiempos",
+      "priceCny": 420,
+      "rating": 3.8
+    },
+    "vegueros||clasica||mananitas": {
+      "brand": "Vegueros",
+      "series": "Clásica",
+      "vitola": "Mañanitas",
+      "priceCny": 360,
+      "rating": 3.7
+    },
+    "vegueros||centrofinos||centrofinos": {
+      "brand": "Vegueros",
+      "series": "Centrofinos",
+      "vitola": "Centrofinos",
+      "priceCny": 460,
+      "rating": 3.8
     }
   }
 }
