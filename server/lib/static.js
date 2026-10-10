@@ -1,6 +1,7 @@
 import { createReadStream, existsSync, statSync, readFileSync } from 'node:fs'
 import { extname, join, normalize, sep } from 'node:path'
 import { gzipSync } from 'node:zlib'
+import { injectMeta } from './meta.js'
 
 /**
  * 静态资源托管（生产模式：托管 web/dist）
@@ -35,6 +36,38 @@ const GZIP_MIN_BYTES = 1024
 
 // 内存缓存：dist 体积小，直接缓存 gzip 结果，省掉重复压缩
 const gzipCache = new Map()
+
+/** 从请求头还原对外访问来源（OG 标签必须是绝对地址） */
+function originOf(req) {
+  const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim()
+    || (req.socket.encrypted ? 'https' : 'http')
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim()
+  return host ? `${proto}://${host}` : ''
+}
+
+/** 发送一段内存中的 HTML（带 gzip 与正确的缓存策略：HTML 绝不长缓存） */
+function sendHtml(req, res, html) {
+  const buf = Buffer.from(html, 'utf8')
+  const headers = {
+    'content-type': 'text/html; charset=utf-8',
+    'cache-control': 'no-cache',
+    'x-content-type-options': 'nosniff',
+  }
+  const acceptsGzip = /\bgzip\b/.test(String(req.headers['accept-encoding'] || ''))
+  if (acceptsGzip && buf.length >= GZIP_MIN_BYTES) {
+    const gz = gzipSync(buf)
+    headers['content-encoding'] = 'gzip'
+    headers['content-length'] = gz.length
+    headers.vary = 'Accept-Encoding'
+    res.writeHead(200, headers)
+    res.end(gz)
+    return true
+  }
+  headers['content-length'] = buf.length
+  res.writeHead(200, headers)
+  res.end(buf)
+  return true
+}
 
 function contentType(file) {
   return MIME[extname(file).toLowerCase()] || 'application/octet-stream'
@@ -123,7 +156,12 @@ function sendFile(req, res, file, { status = 200, pathname = '' } = {}) {
  * 返回 true 表示已处理该请求。
  * 注意：/api 前缀不会被本函数处理（由 API 路由先接管）。
  */
-export function createStaticHandler(root) {
+/**
+ * @param {string} root 静态根目录
+ * @param {(pathname: string, origin: string) => object} [resolveMeta]
+ *        SPA 回退时用来解析该路由的 SEO meta。不传则原样返回 index.html。
+ */
+export function createStaticHandler(root, resolveMeta = null) {
   const indexFile = join(root, 'index.html')
   // ⚠️ 不要在这里把 index.html「是否存在」缓存成常量。
   // 前端重新构建会替换 index.html 与其引用的 hash 资源名，而本进程若缓存了旧的
@@ -155,8 +193,21 @@ export function createStaticHandler(root) {
       return true
     }
 
-    // SPA 回退：只要不是带扩展名的静态请求，就交给前端路由
+    // SPA 回退：只要不是带扩展名的静态请求，就交给前端路由。
+    // 这里顺带做服务端 meta 注入 —— 爬虫不执行 JS，拿到带正确
+    // title/description/OG 的 HTML 才能被收录、分享出去才有卡片。
     if (hasIndex() && !extname(pathname)) {
+      if (resolveMeta) {
+        try {
+          const origin = originOf(req)
+          const meta = resolveMeta(pathname, origin)
+          const html = injectMeta(readFileSync(indexFile, 'utf8'), meta)
+          return sendHtml(req, res, html)
+        } catch (err) {
+          // meta 解析失败不能影响页面可访问性，降级为原样返回
+          console.error('[meta] 注入失败，降级返回原始 index.html：', err.message)
+        }
+      }
       sendFile(req, res, indexFile, { status: 200, pathname: '/index.html' })
       return true
     }

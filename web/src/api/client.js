@@ -114,6 +114,9 @@ export const api = {
   createReview: (payload) => post('/reviews', payload),
   toggleHelpful: (id) => post(`/reviews/${id}/helpful`),
 
+  // ---- 用户 ----
+  userProfile: (id) => get(`/users/${id}`),
+
   // ---- 图片 ----
   uploadImage: (data) => post('/uploads', { data }),
   uploadLimits: () => get('/uploads/limits'),

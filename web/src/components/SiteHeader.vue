@@ -32,17 +32,25 @@
           class="cc-btn-ghost !px-3 !py-1.5 text-xs hidden sm:inline-flex !border-cigar-gold/50 !text-cigar-gold"
         >管理后台</router-link>
         <router-link to="/submit" class="cc-btn-ghost !px-3 !py-1.5 text-xs hidden sm:inline-flex">提报数据</router-link>
-        <button
-          class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-cigar-mute hover:text-cigar-cream"
-          :title="auth.user.username"
-          @click="showMenu = !showMenu"
+        <router-link
+          :to="`/users/${auth.user.id}`"
+          class="grid h-7 w-7 place-items-center rounded-full bg-cigar-gold/20 text-xs text-cigar-gold transition-colors hover:bg-cigar-gold/30"
+          :title="`${auth.user.username} · 我的主页`"
         >
-          <span class="grid h-6 w-6 place-items-center rounded-full bg-cigar-gold/20 text-cigar-gold">
-            {{ auth.user.username.slice(0, 1).toUpperCase() }}
-          </span>
-        </button>
+          {{ auth.user.username.slice(0, 1).toUpperCase() }}
+        </router-link>
+        <button
+          class="rounded-lg px-1.5 py-1.5 text-xs text-cigar-mute hover:text-cigar-cream"
+          title="菜单"
+          @click="showMenu = !showMenu"
+        >▾</button>
         <div v-if="showMenu" class="relative">
           <div class="absolute right-0 top-2 z-40 w-36 cc-card p-1.5 text-sm shadow-xl">
+            <router-link
+              :to="`/users/${auth.user.id}`"
+              class="block rounded-lg px-3 py-2 hover:bg-cigar-light/50"
+              @click="showMenu = false"
+            >我的主页</router-link>
             <router-link
               v-if="auth.canModerate"
               :to="{ name: 'admin-overview' }"

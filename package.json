@@ -23,7 +23,8 @@
     "backup": "bash scripts/backup-db.sh",
     "verify:ui": "node scripts/verify-ui.mjs",
     "screenshot": "node scripts/screenshot.mjs",
-    "verify:admin": "node scripts/verify-admin-ui.mjs"
+    "verify:admin": "node scripts/verify-admin-ui.mjs",
+    "verify:seo": "bash scripts/verify-seo.sh"
   },
   "workspaces": [
     "web"

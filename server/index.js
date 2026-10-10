@@ -7,6 +7,7 @@ import {
   Router, readBody, sendError, createRateLimiter, clientIp, HttpError, notFound,
 } from './lib/http.js'
 import { createStaticHandler } from './lib/static.js'
+import { resolveMeta, buildSitemap } from './lib/seo.js'
 import { readImage } from './lib/storage.js'
 import { attachAuth, purgeExpiredSessions } from './middleware/auth.js'
 import { metaRouter } from './api/meta.js'
@@ -78,7 +79,7 @@ const searchParamsToObject = (params) => {
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 // ---------------------------------------------------------------- 请求处理
-const handleStatic = createStaticHandler(config.paths.webDist)
+const handleStatic = createStaticHandler(config.paths.webDist, resolveMeta)
 const distReady = existsSync(config.paths.webDist)
 
 async function handle(req, res) {
@@ -116,6 +117,25 @@ async function handle(req, res) {
     if (!matched) throw notFound(`接口不存在：${req.method} ${pathname}`)
     req.params = matched.params
     await matched.handler(req, res)
+    return
+  }
+
+  // 动态 sitemap：静态那份只列了固定入口，这里把全部雪茄也包含进去
+  if (pathname === '/sitemap.xml') {
+    const origin = (() => {
+      const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim()
+        || (req.socket.encrypted ? 'https' : 'http')
+      const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim()
+      return host ? `${proto}://${host}` : ''
+    })()
+    const xml = buildSitemap(origin)
+    const body = Buffer.from(xml, 'utf8')
+    res.writeHead(200, {
+      'content-type': 'application/xml; charset=utf-8',
+      'content-length': body.length,
+      'cache-control': 'public, max-age=3600',
+    })
+    res.end(body)
     return
   }
 

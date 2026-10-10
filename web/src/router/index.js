@@ -21,6 +21,12 @@ const routes = [
     meta: { title: '雪茄详情' },
   },
   {
+    path: '/users/:id(\\d+)',
+    name: 'user-profile',
+    component: () => import('@/views/UserProfileView.vue'),
+    meta: { title: '茄友主页' },
+  },
+  {
     path: '/reviews',
     name: 'reviews',
     component: () => import('@/views/ReviewsView.vue'),

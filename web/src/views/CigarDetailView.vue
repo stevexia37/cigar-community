@@ -168,7 +168,13 @@
               <div class="min-w-0">
                 <h3 class="truncate text-sm font-medium text-cigar-cream">{{ r.title || '无标题笔记' }}</h3>
                 <p class="mt-0.5 text-[11px] text-cigar-smoke">
-                  {{ r.username || '匿名' }} · {{ fmtDate(r.createdAt) }}
+                  <router-link
+                    v-if="r.userId"
+                    :to="`/users/${r.userId}`"
+                    class="text-cigar-cream hover:text-cigar-gold"
+                  >{{ r.username || '匿名' }}</router-link>
+                  <span v-else>{{ r.username || '匿名' }}</span>
+                  · {{ fmtDate(r.createdAt) }}
                 </p>
               </div>
               <span class="shrink-0 rounded-lg bg-cigar-gold/15 px-2 py-0.5 text-xs text-cigar-gold">

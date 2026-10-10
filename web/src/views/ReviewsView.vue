@@ -58,7 +58,12 @@
             <div class="min-w-0">
               <h2 class="truncate text-sm font-medium text-cigar-cream">{{ r.title || '无标题笔记' }}</h2>
               <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-cigar-smoke">
-                <span>{{ r.username || '匿名' }}</span>
+                <router-link
+                  v-if="r.userId"
+                  :to="`/users/${r.userId}`"
+                  class="text-cigar-cream hover:text-cigar-gold"
+                >{{ r.username || '匿名' }}</router-link>
+                <span v-else>{{ r.username || '匿名' }}</span>
                 <span>·</span>
                 <span>{{ fmtDate(r.createdAt) }}</span>
                 <template v-if="r.cigarLabel">

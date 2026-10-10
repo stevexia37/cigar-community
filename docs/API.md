@@ -31,6 +31,23 @@
 | `UNKNOWN_ORIGIN` | 400 | `origin` 参数含未知值（`details.unknown` / `details.allowed`） |
 | `INVALID_MIN_RATING` | 400 | `minRating` 不是 0-5 的数字 |
 | `INVALID_ID` | 400 | 路径或查询中的 ID 不是正整数 |
+
+## 9.2 SEO 与分享
+
+服务端对 SPA 路由做 **meta 注入**：爬虫不执行 JS，所以由服务端在返回 `index.html` 时
+按路径替换 `<title>` / `description` / Open Graph 标签。不加 SSR，也不引入额外依赖。
+
+| 路径 | 行为 |
+|---|---|
+| `/cigars/:id` | 注入「品牌 型号 · 雪茄客」标题与含产地/浓郁度/描述摘要的 OG 描述，`og:type=article` |
+| `/users/:id` | 注入「用户名 的品吸笔记 · 雪茄客」 |
+| `/tools/*`、`/guide/*` | 各自固定文案 |
+| `/login`、404、不存在的雪茄 | 标记 `noindex`，不污染搜索结果 |
+| `GET /sitemap.xml` | **动态生成**，包含全部雪茄详情页与静态入口（不再是一份写死的静态文件） |
+| `GET /robots.txt` | 静态文件，禁止抓取 `/api/` |
+
+OG 的 `og:url` / `og:image` 一律输出**绝对地址**（爬虫不解析相对路径）。
+所有注入值经 HTML 转义，防止内容里的标签污染 meta。
 | `INTERNAL_ERROR` | 500 | 服务端异常 |
 
 ---
@@ -351,6 +368,21 @@
 
 用户名规则：3-24 位，字母/数字/下划线/中文。口令：≥8 位且非纯数字。
 注册重复 → `409 CONFLICT`。注册/登录限流：每 IP 每分钟 10 次 → `429 TOO_MANY_REQUESTS`。
+
+## 8.3 用户主页
+
+`GET /api/users/:id` → `200`（无需登录）
+
+```jsonc
+{
+  "user": { "id": 1, "username": "admin", "avatarUrl": null, "bio": null, "role": "admin", "createdAt": "…" },
+  "stats": { "reviews": 3, "submissions": 1, "helpful": 12 },
+  "reviews": [ /* 最近 20 篇已发布笔记，结构同 §6.1 */ ]
+}
+```
+
+只暴露公开字段（不含 `email`）。被停用账号视为不存在（`404`），
+避免停用后仍能通过主页访问其内容。非法 ID → `400 INVALID_ID`。
 
 ## 8.4 图片上传
 
