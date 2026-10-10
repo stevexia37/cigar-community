@@ -119,7 +119,8 @@ cigar-community/
 | `npm run smoke` | 只跑契约冒烟（对已在跑的服务） |
 | `npm run verify:ui` | 前端 DOM 断言（真实浏览器，51 项，含图片上传） |
 | `npm run verify:admin` | 管理后台断言（权限隔离 + 渲染，27 项） |
-| `npm run verify:seo` | SEO 断言（爬虫视角 + sitemap + 转义，35 项） |
+| `npm run verify:seo` | SEO 断言（爬虫视角 + sitemap + 转义，43 项） |
+| `npm run test:migrate` | **旧库升级路径测试**（删列模拟旧库 → 断言自动补列、数据不丢、版本戳刷新） |
 | `npm run screenshot` | 用 headless Chrome 给页面截图（视觉回归辅助） |
 | `npm run preflight` | 上线前只读体检（可对线上域名执行） |
 | `npm run backup` | SQLite 一致性备份 + 自动轮转 |

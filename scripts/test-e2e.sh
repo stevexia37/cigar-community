@@ -113,5 +113,19 @@ if [[ $SMOKE_CODE -ne 0 ]]; then
   exit 1
 fi
 
-printf '\n%s\n' "$(color '32' '  ✓ 端到端测试全部通过（隔离库 + 单元测试 + 契约冒烟）')"
+# ---- 旧库升级路径 ----
+# 放在最后：它要自己起一个服务实例，与前面共用端口会冲突。
+# 这一步不能省 —— 迁移坏掉意味着「老部署升级即灾难」，
+# 而开发机总是新建库，永远走不到迁移分支，属于典型的静默风险。
+step "旧库升级路径测试"
+MIGRATE_OUT="$(bash "$ROOT/scripts/migrate-test.sh" 2>&1)"
+MIGRATE_CODE=$?
+printf '%s\n' "$MIGRATE_OUT" | sed 's/\x1b\[[0-9;]*m//g' | tail -14
+
+if [[ $MIGRATE_CODE -ne 0 ]]; then
+  printf '\n%s\n' "$(color '31' '  ✗ 端到端测试未通过（升级路径）')"
+  exit 1
+fi
+
+printf '\n%s\n' "$(color '32' '  ✓ 端到端测试全部通过（隔离库 + 单元测试 + 契约冒烟 + 旧库升级路径）')"
 exit 0

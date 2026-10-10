@@ -351,6 +351,60 @@ fly deploy
 调用方（`server/api/misc.js`、`server/api/reviews.js`）无需改动。
 这是当初把存储单独成模块的原因。
 
+## 九点五、升级与回滚（长期维护必读）
+
+这个项目**没有独立的迁移框架**，而是靠 `server/db/index.js` 的 `migrate()`
+做幂等增量补列：每次启动时检查 `cigars` / `brands` 是否缺列，
+缺了就 `ALTER TABLE ... ADD COLUMN`，并顺手修正历史上「1-10 分误写入 1-5 星」
+的评分污染。`database/schema.sqlite.sql` 只负责**新建**（全部 `IF NOT EXISTS`）。
+
+### 升级步骤
+
+```bash
+bash scripts/backup-db.sh          # 1. 先备份（含 -wal/-shm，见下）
+docker compose pull && docker compose up -d   # 或 git pull && 重启进程
+docker compose logs -f app | grep -E '已迁移|版本戳'   # 2. 确认迁移日志
+```
+
+正常会看到类似：
+
+```
+[db] 已迁移旧库，补充 5 项
+[bootstrap] 数据库版本戳更新 1.1.0 → 1.2.0
+```
+
+### 判断「升级是否成功」
+
+| 现象 | 含义 |
+|---|---|
+| 没有任何 `已迁移` 日志 | 库已是最新结构（或本来就没变化），正常 |
+| 有 `已迁移旧库，补充 N 项` | 补列成功，数据未动 |
+| 有 `版本戳更新 A → B` | `app_meta.db_version` 已跟上新版本 |
+| 启动报 `SQL logic error` / `no such column` | 迁移没覆盖到这次的结构变更，**需要人工补一条 `addIfMissing`** |
+
+> **新增列时必须同步改 `migrate()`。** 只在 `schema.sqlite.sql` 里加列，
+> 只对**新建库**生效；已有部署升级后会缺列，然后在第一次查询时报
+> `no such column`。这正是 `npm run test:migrate` 要防的事。
+
+### 回滚
+
+```bash
+docker compose down
+cp backups/cigar_<时间戳>.db /path/to/volume/cigar.db   # 用备份覆盖
+docker compose up -d
+```
+
+⚠️ **回滚只能到备份点**：`migrate()` 只做加法（补列），不会删列或改数据，
+所以从旧版本跑新库通常也能启动；但从新版本退回旧版本时，
+旧代码不认识新列（通常无害）。真正危险的是**数据本身**，
+所以升级前的备份不是可选项。
+
+### 备份注意 WAL
+
+SQLite 开了 WAL 模式，数据可能还在 `cigar.db-wal` 里。
+只拷贝 `cigar.db` 可能漏掉最近的事务 —— `scripts/backup-db.sh` 已经处理了这一点，
+不要手写 `cp cigar.db` 代替它。
+
 ## 十、CI
 
 `.github/workflows/ci.yml` 在两个层面把关：
