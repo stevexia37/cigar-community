@@ -1,3 +1,27 @@
+> ## ⚠️ 请先读这段：本文件是历史文档，部分条目已失效
+>
+> 这份清单写于项目早期（Nginx + MySQL + 云服务器方案），**不能直接照用**。
+> 年龄门与敏感词口径已经实现为**自动化断言**，那些才是当前的验收依据：
+> `npm run test:e2e`（235 项）、`npm run verify:ui`、`npm run verify:admin`、`npm run verify:seo`、`npm run preflight`。
+>
+> ### 已确认失效的条目
+>
+> | 条目 | 文件里写的 | 实际实现 | 以哪个为准 |
+> |---|---|---|---|
+> | §1.3 测试命令 | `POST /api/posts` | 接口是 `POST /api/reviews`；纯判定用 `POST /api/tools/check-text` | 实际实现 |
+> | §1.3 期望响应 | `{"error":"CONTENT_REJECTED","code":"SENSITIVE_WORD_BLOCKED"}` | `403` + `code: "CONTENT_REJECTED"`（另 `details.matched` 给出命中词） | 实际实现 |
+> | §1.3.1「代购 私聊 加微信」 | **自动封号** | 拒绝发布（`403`），**不封号** | 实际实现 |
+> | §1.3.2「多少钱一支 出茄」 | 拦截进审核队列 | **直接拒绝**：命中 `immediate_ban` 或组合规则即红线 | 实际实现 |
+> | §1.3.4「VX: 123456」 | 变体识别 → **自动封号** | 变体识别生效（`VX` → 命中），但**不封号**，行为同 §1.3.1 | 实际实现 |
+> | 基础设施（Nginx/WAF/reCAPTCHA/MySQL） | 按该清单配置 | 本项目为**零依赖 Node + SQLite**，自带安全响应头 | 按当前架构调整 |
+>
+> **关于「自动封号」为什么不做**：`config/sensitive-words.json` 的 `_design_note` 明确写着
+> 「误杀比漏放更伤社区」——一个词命中就封号，在中文语境下误杀率过高。
+> 当前策略是拒绝发布并留审计痕迹（`audit_log`），由运营在管理后台决定是否停用账号。
+> 这是刻意的取舍，不是遗漏。
+>
+> 已失效的条目保留原文，是为了留下决策痕迹；**不要照做**。
+
 # 雪茄客 · 上线检查单与发布闭环
 
 > 版本：v1.0 ｜ 适用：cigaraficionado-china.com ｜ 执行人：技术总监 + 运营总监

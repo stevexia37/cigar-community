@@ -344,6 +344,59 @@ else
   warn "未发现 CI 工作流" "建议配置 .github/workflows/ci.yml 自动跑测试"
 fi
 
+# ---------------------------------------------------------------- 文档与实现一致
+# 「文档承诺了不存在的东西」是真实发生过的问题：deployment/checklist.md 里的
+# 示例命令写的是 `POST /api/posts`，而项目里根本没有这个接口（实测 404），
+# 照做的运维会以为功能坏了。这条检查把「文档引用的接口必须真实存在」固化下来。
+grp "文档与实现一致"
+
+if [[ -d "$ROOT_DIR/docs" || -f "$ROOT_DIR/deployment/checklist.md" ]]; then
+  ROUTES_FILE="$(mktemp -t cc-routes.XXXXXX)"
+  # 从服务端路由注册里抽出全部路径字面量，并补上 /api 前缀 ——
+  # 各 router 在源码里写的是 '/admin/stats' 这种不带前缀的路径，
+  # 前缀由 index.js 的 router.mount('/api', sub) 统一加上。
+  grep -rhoE "'/[a-zA-Z0-9/:_-]+'" "$ROOT_DIR/server/api/" 2>/dev/null \
+    | tr -d "'" | sed 's#^#/api#' | sort -u > "$ROUTES_FILE"
+
+  STALE=()
+  # 检查文档里出现的 /api/xxx 引用（反引号或 curl 里的）
+  while IFS= read -r ref; do
+    [[ -z "$ref" ]] && continue
+    # 去掉方法前缀与查询串，归一化动态段
+    probe="$(printf '%s' "$ref" | sed 's/?.*//' | sed -E 's#/[0-9]+#/:id#g; s#/[0-9a-f]{8,}#/:id#g')"
+    # 在路由表里找：先精确，再按动态段匹配
+    if grep -qx "$probe" "$ROUTES_FILE"; then continue; fi
+    # 允许带参数的写法（如 /reviews/:id/helpful 在源码里是 '/reviews/:id/helpful'）
+    if grep -qF "$probe" "$ROUTES_FILE"; then continue; fi
+    STALE+=("$ref")
+  # 只取「像接口引用」的写法：反引号包裹，或 curl 命令里的 URL。
+  # 直接 grep '/api/xxx' 会把 web/src/api/client.js 这类**文件路径**也算进来。
+  done < <(
+    {
+      grep -rhoE '`(/api/[a-zA-Z0-9/_:{}$-]+)`' "$ROOT_DIR/docs"/*.md "$ROOT_DIR/README.md" 2>/dev/null | tr -d '`'
+      grep -rhoE "\$BASE/api/[a-zA-Z0-9/_-]+" "$ROOT_DIR/docs"/*.md "$ROOT_DIR/README.md" 2>/dev/null | sed 's#^\$BASE##'
+    } | sed 's#/+$##' | grep -vE '^/api/(client|misc|shape|admin|reviews|cigars|auth|tools|meta|submissions|upload)\.js$' | sort -u
+  )
+  rm -f "$ROUTES_FILE"
+
+  # 只关心「看起来是具体接口、但实现里没有」的引用；忽略明显是示例域名的
+  REAL_STALE=()
+  for r in "${STALE[@]:-}"; do
+    [[ -z "$r" ]] && continue
+    case "$r" in
+      */api/*) REAL_STALE+=("$r") ;;
+    esac
+  done
+  if [[ ${#REAL_STALE[@]} -eq 0 ]]; then
+    ok "文档引用的 /api 路径都能在实现里找到"
+  else
+    # 报告为警告而非失败：文档里可能有意提到「不要用某个旧接口」
+    warn "文档引用了实现中不存在的接口" "${REAL_STALE[*]:0:6} —— 请确认是刻意提及（如历史说明）还是文档过时"
+  fi
+else
+  warn "未找到文档目录" "跳过文档一致性检查"
+fi
+
 # ---------------------------------------------------------------- 汇总
 printf '\n%s\n' "$(c '1;36' '────────────────────────────────────')"
 printf '  通过 %s · 警告 %s · 失败 %s\n' "$(c 32 "$PASS")" "$(c 33 "$WARN")" "$(c $([[ $FAIL -gt 0 ]] && echo 31 || echo 32) "$FAIL")"

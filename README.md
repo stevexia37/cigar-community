@@ -133,7 +133,7 @@ cigar-community/
 
 | 位置 | 它假设的架构 | 与现状的关系 |
 |---|---|---|
-| `deployment/checklist.md` | Nginx + MySQL + 云服务器 | ✅ 验收标准仍然有效（年龄门、敏感词口径已实现为自动化断言）；基础设施部分需按实际调整 |
+| `deployment/checklist.md` | Nginx + MySQL + 云服务器 | ⚠️ **历史文档，勿直接照用**。年龄门与敏感词口径已实现为自动化断言（以断言为准）；该文件仍有已失效内容，详见文首说明 |
 | `deployment/serverless-deploy-guide.md` | Cloudflare Pages + Supabase | ⚠️ 与当前 Node+SQLite 实现**不兼容**，属于备选路线 |
 | `_archive/win11/` | Windows Server + MySQL | ⚠️ 已归档，被 `scripts/preflight.sh` 与 `backup-db.sh` 取代 |
 
@@ -240,7 +240,7 @@ npm run preflight -- https://你的域名  # 只读体检
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | 开发约定、如何加接口、如何改规则库 |
 | [docs/VERIFICATION.md](docs/VERIFICATION.md) | 独立验收报告 + 缺陷修复记录（含根因分析） |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | 部署与运维细则 |
-| [deployment/checklist.md](deployment/checklist.md) | 上线检查单（历史文档，验收标准仍有效） |
+| [deployment/checklist.md](deployment/checklist.md) | 上线检查单（**历史文档**，部分条目已失效，见文首对照表） |
 
 ## 已知限制
 
@@ -254,7 +254,7 @@ npm run preflight -- https://你的域名  # 只读体检
    若要补全需要接入可信数据源，不接受编造。
 6. **meta 注入不做 SSR**。首屏 HTML 里有正确的 meta（爬虫与分享卡片够用），但正文仍由 JS 渲染；
    若要更强的收录效果需要真 SSR（会引入另一套复杂度，暂不做）。
-5. **`web/dist` 需要手动构建**。Docker 与 CI 在后续批次补上。
+5. **`web/dist` 需手动构建**（或直接用 Docker / `npm run build`）——Docker 镜像与 CI 工作流已完成。
 7. **管理后台缺失**（见下）。运营无法在界面上处理审核队列。
 8. **前端测试为 DOM 断言，非完整 E2E**。`npm run verify:ui` 覆盖 45 项关键路径（年龄门、渲染、搜索、空态、404），但没有表单交互与跨浏览器覆盖。
 
