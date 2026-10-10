@@ -268,7 +268,11 @@ async function main() {
   assert(!(await evalJs('return !!document.querySelector(\'[role="dialog"]\')')), '已通过年龄门后不再弹出')
   const homeText = await text()
   assert(homeText.includes('不卖茄'), '渲染站点主张')
-  assert(/42/.test(homeText), '展示雪茄总数（来自 /api/meta）', homeText.slice(0, 200))
+  // 不写死数字：从接口取真实总量再比对，否则每次扩充数据这条断言都会失效
+  const metaStats = await fetch(`${BASE}/api/meta`).then((r) => r.json()).then((j) => j.stats).catch(() => null)
+  const expectCount = metaStats?.cigars
+  assert(expectCount > 0 && homeText.includes(String(expectCount)),
+    `首页展示雪茄总数（来自 /api/meta：${expectCount}）`, homeText.slice(0, 200))
   assert(homeText.includes('病害诊断') && homeText.includes('风味人格测试') && homeText.includes('醇化计算器'),
     '三个工具入口齐全')
   const homeCards = await count('a[href^="/cigars/"]')

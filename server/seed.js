@@ -92,31 +92,62 @@ export function normalizeBrandName(name) {
     .toLowerCase()
 }
 
+/**
+ * 型号家族判定。
+ *
+ * ⚠️ 分两步走，顺序不能反：
+ *   1. **先看型号名**。锥形（Torpedo / Belicoso / Piramides / Figurado / Chisel）
+ *      与特殊造型必须靠名字判断 —— 它们的尺寸与罗布图/科罗娜重叠，
+ *      靠区间会把「Siglo VI（52×5.9）」这种罗布图误判成贝利科索（实测踩过）。
+ *   2. 名字看不出时，**再按尺寸区间**回退，且区间按长度优先匹配，
+ *      因为长度比环径更能区分家族（环径 50-56 横跨罗布图/鱼雷/戈多）。
+ */
 export function detectVitolaFamily(vitola, ringGauge, lengthInch) {
   const text = String(vitola || '').toLowerCase()
+
+  // ---- 第一步：型号名（锥形与特殊造型只能靠名字）----
+  // 少数型号的名字不带家族词，但业界分类明确，单独列出避免被尺寸回退误判
+  if (text.includes('siglo vi')) return 'robusto'          // 52×6.0，Cannazo，哈瓦那分类归罗布图
+  if (text.includes('novedosos')) return 'robusto'          // 52×6.1
+
+  if (/torpedo|belicoso|piramide|pirámide|figurado|chisel|campana/.test(text)) return 'belicoso'
+  if (text.includes('perfecto')) return 'belicoso'
+  if (/lancero|longsdale|laguito no\.?1|palmitas/.test(text)) return 'lancero'
+  if (text.includes('panetela') || text.includes('panatela') || text.includes('palma')) return 'panatela'
+  if (text.includes('double corona') || text.includes('doble corona') || text.includes('prominente')) return 'double_corona'
+  if (text.includes('churchill') || text.includes('tacos')) return 'churchill'
+  if (text.includes('gordo') || text.includes('toro gordo') || text.includes('60') && /\bgordo\b/.test(text)) return 'gordo'
   if (text.includes('robusto')) {
-    if (text.includes('double')) return 'double_corona'
+    if (text.includes('double') || text.includes('doble')) return 'double_corona'
     return 'robusto'
   }
-  if (text.includes('churchill')) return 'churchill'
-  if (text.includes('torpedo') || text.includes('belicoso') || text.includes('piramide')) return 'belicoso'
-  if (text.includes('lancero') || text.includes('longsdale')) return 'lancero'
   if (text.includes('corona')) {
-    if (text.includes('double')) return 'double_corona'
-    if (text.includes('petit')) return 'petit_corona'
+    if (text.includes('double') || text.includes('doble')) return 'double_corona'
+    if (text.includes('petit') || text.includes('petito')) return 'petit_corona'
+    if (text.includes('junior') || text.includes('minor')) return 'petit_corona'
     return 'corona'
   }
-  if (text.includes('gordo') || text.includes('60') || text.includes('56')) return 'gordo'
+  if (text.includes('toro')) {
+    // Toro 是 6" × 50 上下的通称，按尺寸落位
+    return Number(ringGauge) >= 56 ? 'gordo' : 'robusto'
+  }
 
+  // ---- 第二步：尺寸回退（长度优先）----
   const rg = Number(ringGauge)
   const len = Number(lengthInch)
-  if (Number.isFinite(rg) && Number.isFinite(len)) {
-    for (const f of VITOLA_FAMILIES) {
-      if (rg >= f.rg[0] && rg <= f.rg[1] && len >= f.len[0] && len <= f.len[1]) return f.value
-    }
-    for (const f of VITOLA_FAMILIES) if (rg >= f.rg[0] && rg <= f.rg[1]) return f.value
-  }
-  return 'other'
+  // 尺寸缺失或非法时明确返回 other —— 不能让它落进「最短档」变成 petit_corona
+  if (!Number.isFinite(rg) || !Number.isFinite(len) || rg <= 0 || len <= 0) return 'other'
+
+  if (rg >= 60) return 'gordo'
+  // 长矛必须先判：40 环 × 7.6 的 Fundadores 同时满足双科罗娜的长度
+  if (len >= 7.0 && rg <= 42) return 'lancero'
+  if (len >= 6.8) return rg <= 52 ? 'double_corona' : 'gordo'
+  if (len >= 6.5) return rg >= 55 ? 'gordo' : 'churchill'
+  if (len > 6.2) return rg >= 55 ? 'gordo' : 'corona'
+  if (len > 5.6) return rg >= 55 ? 'gordo' : (rg >= 46 ? 'robusto' : 'corona')
+  if (len >= 5.0) return rg >= 55 ? 'gordo' : (rg >= 46 ? 'robusto' : 'corona')
+  if (len >= 4.3) return rg >= 56 ? 'gordo' : 'robusto'
+  return 'petit_corona'
 }
 
 export const FILTER_OPTIONS = {
@@ -176,10 +207,53 @@ function splitFlavors(raw) {
   return String(raw || '').split(/[,，]/).map((s) => s.trim()).filter(Boolean)
 }
 
+/**
+ * 读取参考价/评分补充数据。
+ * 键是「归一化品牌||归一化型号」，与 CSV 宽松匹配 —— 这样
+ * 「Robustos」与「Robusto」、「Padrón」与「Padron」都能对上，
+ * 不必要求两边逐字一致（手写数据表时这是最容易出错的地方）。
+ */
+export function loadEnrichment() {
+  const path = config.paths.seedEnrichment
+  if (!existsSync(path)) return new Map()
+  try {
+    const raw = JSON.parse(readFileSync(path, 'utf8'))
+    const map = new Map()
+    for (const [key, v] of Object.entries(raw.items || {})) {
+      map.set(key, { priceCny: v.priceCny ?? null, rating: v.rating ?? null })
+    }
+    return map
+  } catch (err) {
+    console.warn(`[seed] 补充数据解析失败（${err.message}），将跳过参考价/评分`)
+    return new Map()
+  }
+}
+
+/**
+ * 匹配键归一化：品牌名去变音符号，型号名额外去掉所有标点与空格。
+ * 必须与 scripts/build-enrichment.mjs 的 normalizeModelName 保持一致，
+ * 否则「H.Upmann」会对不上「hupmann」（实测命中率从 288 掉到 32）。
+ */
+function normForKey(x) {
+  return String(x ?? '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]/g, '')
+}
+
+function enrichmentKey(brand, series, vitola) {
+  return `${normForKey(brand)}||${normForKey(series)}||${normForKey(vitola)}`
+}
+
+/** 只有品牌+型号的弱键，作为三段键未命中时的回退 */
+function enrichmentWeakKey(brand, vitola) {
+  return `${normForKey(brand)}||${normForKey(vitola)}`
+}
+
 // ---------------------------------------------------------------- 导入
 export function seedDatabase({ reset = false, log = console } = {}) {
   const db = getDb()
-  const stats = { countries: 0, brands: 0, flavors: 0, cigarsCsv: 0, cigarsMock: 0, links: 0, skipped: [] }
+  const stats = { countries: 0, brands: 0, flavors: 0, cigarsCsv: 0, cigarsMock: 0, links: 0, enriched: 0, skipped: [] }
 
   if (reset) {
     // 全量重置包含 users —— 明确只用于开发
@@ -290,6 +364,7 @@ export function seedDatabase({ reset = false, log = console } = {}) {
       const brandId = ensureBrand(row.brand, row.countryKey)
       const family = detectVitolaFamily(row.vitola, row.ringGauge, row.lengthInch)
       const lengthMm = row.lengthInch ? Math.round(row.lengthInch * 25.4) : null
+
       insCigar.run(
         brandId, row.series || null, row.vitola, family,
         row.lengthInch ?? null, lengthMm, row.ringGauge ?? null,
@@ -297,8 +372,8 @@ export function seedDatabase({ reset = false, log = console } = {}) {
         row.wrapperOrigin ?? countryId, row.wrapper || null, row.binder || null, row.filler || null,
         row.strength ?? null, row.description || null,
         row.price ?? null,
-        row.rating ?? null,          // rating：当前展示评分
-        row.rating ?? null,          // base_rating：种子基准评分（用户评分出现后仍保留）
+        row.rating ?? null,                    // rating：当前展示评分
+        row.baseRating ?? row.rating ?? null,  // base_rating：种子基准评分（用户评分出现后仍保留）
         row.reviews ?? 0,            // review_count 初值＝种子参考数
         row.reviews ?? 0,            // seed_review_count：种子参考数，不受用户笔记影响
         row.dataSource, nowIso(),
@@ -360,8 +435,41 @@ export function seedDatabase({ reset = false, log = console } = {}) {
     }
   })
 
+  // ---- 统一应用补充数据（参考价 / 评分）----
+  // 放在所有来源导入之后，而不是逐行应用：mock 数据自带价格，会盖掉 CSV 行，
+  // 而补充表是人工整理的、更权威。这里做一次权威覆盖，避免「谁后写谁赢」的不确定行为。
+  {
+    const enrichment = loadEnrichment()
+    // 同时建弱键索引（品牌+型号），用于三段键未命中时回退
+    const weak = new Map()
+    for (const [k, v] of enrichment) {
+      const parts = k.split('||')
+      if (parts.length === 3) weak.set(`${parts[0]}||${parts[2]}`, v)
+    }
+    const conn = getDb()
+    const rows = conn.prepare('SELECT id, brand_id, series, vitola FROM cigars').all()
+    const brandNames = new Map(conn.prepare('SELECT id, name FROM brands').all().map((b) => [b.id, b.name]))
+    const applyEnrich = conn.prepare(
+      `UPDATE cigars SET price_cny = COALESCE(?, price_cny),
+         rating = COALESCE(?, rating), base_rating = COALESCE(?, base_rating), updated_at = ?
+       WHERE id = ?`,
+    )
+    const ts = nowIso()
+    transaction(() => {
+      for (const r of rows) {
+        const brand = brandNames.get(r.brand_id)
+        const e = enrichment.get(enrichmentKey(brand, r.series, r.vitola))
+          || weak.get(enrichmentWeakKey(brand, r.vitola))
+        if (!e) continue
+        applyEnrich.run(e.priceCny ?? null, e.rating ?? null, e.rating ?? null, ts, r.id)
+        stats.enriched++
+      }
+    })
+  }
+
   log.log(`[seed] 完成：国家 ${stats.countries} · 品牌 ${stats.brands} · 风味 ${stats.flavors} · ` +
           `雪茄 CSV ${stats.cigarsCsv} + MOCK ${stats.cigarsMock} · 风味关联 ${stats.links}`)
+  log.log(`[seed] 参考价/评分补充命中 ${stats.enriched} 条`)
   if (stats.skipped.length) {
     log.warn(`[seed] ${stats.skipped.length} 条风味未匹配：`)
     for (const s of stats.skipped.slice(0, 10)) log.warn('  -', s)

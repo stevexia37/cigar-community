@@ -57,6 +57,7 @@ export const config = {
     schema: join(ROOT, 'database', 'schema.sqlite.sql'),
     seedDir: join(ROOT, 'database', 'seed'),
     seedCsv: join(ROOT, 'database', 'seed', 'cigars.csv'),
+    seedEnrichment: join(ROOT, 'database', 'seed', 'cigar-enrichment.json'),
     sensitiveWords: join(ROOT, 'config', 'sensitive-words.json'),
     rules: join(ROOT, 'server', 'rules'),
     webDist: join(ROOT, 'web', 'dist'),

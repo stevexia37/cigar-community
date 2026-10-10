@@ -43,21 +43,48 @@ describe('型号家族判定', () => {
     assert.equal(detectVitolaFamily('Double Corona', 49, 7.6), 'double_corona')
     assert.equal(detectVitolaFamily('Wide Churchill', 55, 4.9), 'churchill')
     assert.equal(detectVitolaFamily('Petit Corona', 42, 4.5), 'petit_corona')
+    assert.equal(detectVitolaFamily('Panetelas', 36, 5.0), 'panatela')
   })
 
-  test('Piramides / Belicoso 归入贝利科索', () => {
+  test('锥形型号靠名字判定（尺寸区间会误判）', () => {
+    // 锥形的尺寸与罗布图/科罗娜重叠，只能靠名字：
+    // Piramides 54×6.3 若靠区间会落进罗布图，实测曾把 107 款误判成贝利科索
     assert.equal(detectVitolaFamily('Piramides', 54, 6.3), 'belicoso')
     assert.equal(detectVitolaFamily('Belicoso', 52, 5.5), 'belicoso')
+    assert.equal(detectVitolaFamily('Torpedo', 56, 6.0), 'belicoso')
+    assert.equal(detectVitolaFamily('Chisel', 54, 6.0), 'belicoso')
   })
 
-  test('型号名无法识别时按环径与长度区间回退', () => {
-    assert.equal(detectVitolaFamily('BHK 52', 52, 4.7), 'robusto')
+  test('长矛必须先于双科罗娜判定（Fundadores 40×7.6）', () => {
+    // 40 环 × 7.6 同时满足双科罗娜的长度条件，顺序错了就会误判
     assert.equal(detectVitolaFamily('Fundadores', 40, 7.6), 'lancero')
+    assert.equal(detectVitolaFamily('Lancero', 38, 7.5), 'lancero')
   })
 
-  test('完全无法判定时返回 other，不抛错', () => {
+  test('名字不含家族词但分类明确的特例', () => {
+    assert.equal(detectVitolaFamily('Siglo VI', 52, 5.9), 'robusto')   // Cannazo，业界归罗布图
+    assert.equal(detectVitolaFamily('BHK 52', 52, 4.7), 'robusto')
+    assert.equal(detectVitolaFamily('Exclusivo', 50, 5.5), 'robusto')
+  })
+
+  test('Toro 等通称按尺寸落位', () => {
+    assert.equal(detectVitolaFamily('Toro', 52, 6.0), 'robusto')
+    assert.equal(detectVitolaFamily('Toro Gordo', 56, 6.5), 'gordo')
+    assert.equal(detectVitolaFamily('Gordo', 60, 6.0), 'gordo')
+  })
+
+  test('No.2（52×6.1）落在罗布图/科罗娜边界，接受按长度归类', () => {
+    // 这个尺寸确实两可：Cuban No.2 的鱼雷版是 Piramides（靠名字走 belicoso），
+    // 而纯数字型号只能按尺寸落位，本实现按长度归入 robusto。记录此模糊性，
+    // 避免日后有人「修复」成另一种又把它改回去。
+    assert.ok(['robusto', 'corona'].includes(detectVitolaFamily('No.2', 52, 6.1)))
+  })
+
+  test('尺寸缺失或不合法时返回 other，不得落进最短档', () => {
     assert.equal(detectVitolaFamily('', null, null), 'other')
     assert.equal(detectVitolaFamily(undefined, undefined, undefined), 'other')
+    assert.equal(detectVitolaFamily('X', 0, 0), 'other')
+    assert.equal(detectVitolaFamily('X', 'abc', 5), 'other')
   })
 })
 

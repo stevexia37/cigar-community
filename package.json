@@ -24,7 +24,8 @@
     "verify:ui": "node scripts/verify-ui.mjs",
     "screenshot": "node scripts/screenshot.mjs",
     "verify:admin": "node scripts/verify-admin-ui.mjs",
-    "verify:seo": "bash scripts/verify-seo.sh"
+    "verify:seo": "bash scripts/verify-seo.sh",
+    "data:build": "node scripts/build-cigar-dataset.mjs && node scripts/build-enrichment.mjs"
   },
   "workspaces": [
     "web"

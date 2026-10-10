@@ -144,12 +144,19 @@ expect_json   "中文风味搜索有结果" '(.total > 0)' 'true'
 
 request GET '/api/cigars?sort=price_asc&pageSize=100'
 expect_status "按价格升序" 200
-# CSV 独有记录没有参考价（priceCny = null），排序时被排到末尾，
-# 所以只校验「有价」那些的单调性，并单独验证 null 确实都在末尾
+# 没有参考价的记录（priceCny = null）排在最后。
+# 注意不能断言「最后一页全为 null」—— 分页截断会让末页混着有价与无价项，
+# 那是个脆弱断言（曾因此误报）。这里断言性质本身：
+#   ① 有价项单调不减  ② 一旦出现 null，后面不能再出现有价项
 expect_json   "价格升序有效（有价项单调不减）" \
   '[.items[].priceCny | select(. != null)] as $p | ([range(1; $p | length) | $p[.] >= $p[. - 1]] | all)' 'true'
-expect_json   "无参考价的记录排在末尾" \
-  '([.items[] | select(.priceCny == null)] | length) as $n | ([.items[-$n:][].priceCny] | all(. == null))' 'true'
+expect_json   "无参考价的记录排在全部有价项之后" \
+  '([.items[].priceCny] | (index(null) // -1)) as $firstNull | $firstNull < 0 or ([.items[$firstNull:][].priceCny] | all(. == null))' 'true'
+# 跨页也要成立：末页允许混排，但不能出现「null 之后又有有价项」的倒置
+request GET '/api/cigars?sort=price_desc&pageSize=100'
+expect_status "按价格降序" 200
+expect_json   "降序时有价项单调不增" \
+  '[.items[].priceCny | select(. != null)] as $p | ([range(1; $p | length) | $p[.] <= $p[. - 1]] | all)' 'true'
 
 request GET '/api/cigars?pageSize=1'
 FIRST_ID="$(printf '%s' "$LAST_BODY" | jq -r '.items[0].id')"
