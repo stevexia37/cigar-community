@@ -1,7 +1,37 @@
-﻿node_modules/
+# ---------- 依赖 ----------
+node_modules/
+.pnpm-store/
+
+# ---------- 构建产物 ----------
 dist/
+web/dist/
+*.tsbuildinfo
+
+# ---------- 环境与凭证 ----------
 .env
+.env.*
+!.env.example
 *.local
-.DS_Store
+
+# ---------- 运行时数据（数据库 / 日志 / PID / 备份）----------
+database/*.db
+database/*.db-journal
+database/*.db-wal
+database/*.db-shm
+backups/
+logs/
+state/
+*.log
+*.pid
+*.lock
+
+# ---------- 临时产物 ----------
 temp_*.sql
 temp_*.sql.gz
+*.tmp
+*.bak
+
+# ---------- 系统 ----------
+.DS_Store
+Thumbs.db
+desktop.ini

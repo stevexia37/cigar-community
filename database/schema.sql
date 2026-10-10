@@ -284,4 +284,7 @@ INSERT INTO `cigar_flavors` (`name`, `name_cn`, `category`, `sort_order`) VALUES
 -- 其他
 ('Toast',        '烤面包',  'toasty',  26),
 ('Smoke',        '烟熏',    'smoky',   27),
-('Cedar/Mint',   '雪松/薄荷混合','complex', 28);
+('Cedar/Mint',   '雪松/薄荷混合','complex', 28),-- 补充：由 content/seed_cigars_15.csv 导入时发现字典缺失
+('Bean',         '豆香',    'sweet',   29),
+('DarkChocolate','黑巧',    'sweet',   30),
+('Nuts',         '坚果',    'nutty',   31);
