@@ -114,7 +114,7 @@ cigar-community/
 | `npm run dev:web` | 前端开发服务器（5173，代理 /api 到 8787） |
 | `npm run build` | 构建前端到 `web/dist/` |
 | `npm start` | 启动生产服务（同时托管前端与 API） |
-| `npm test` | 单元测试（敏感词熔断 40 项 + CSV/规则库 15 项） |
+| `npm test` | 单元测试（敏感词熔断 28 + CSV/型号判定 15 + 上传辅助 6 + **工具规则边界 23** = 72 项） |
 | `npm run test:e2e` | **端到端测试**：隔离临时库 + 单测 + 208 项契约冒烟 |
 | `npm run smoke` | 只跑契约冒烟（对已在跑的服务） |
 | `npm run verify:ui` | 前端 DOM 断言（真实浏览器，51 项，含图片上传） |

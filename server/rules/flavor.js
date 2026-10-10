@@ -141,8 +141,15 @@ export const FALLBACK_PERSONALITY = {
 }
 
 /** 权重：每题等权。返回 0-100 的百分比分数，最大的即为结果 */
-export function scoreCategories(selections = []) {
+export function scoreCategories(selections) {
   // selections: [{ category }] 已由调用方解析出 category
+  //
+  // ⚠️ 这里必须显式判空，不能只靠形参默认值 `= []`：
+  // 默认值只在参数**缺失**（undefined 字面量）时生效，
+  // 显式传 null 时形参已被赋值，默认值不生效，`for...of null` 会抛
+  // `TypeError: selections is not iterable`。
+  // 这是导出函数，直接调用方（含未来的调用点与单测）不该踩这个坑。
+  if (!Array.isArray(selections)) return []
   const raw = {}
   let total = 0
   for (const s of selections) {
