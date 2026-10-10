@@ -1,0 +1,56 @@
+# ============================================================================
+# 雪茄客 · 本地/单机一键启动
+#
+#   docker compose up -d            启动（首次会自动建库并导入种子）
+#   docker compose logs -f          看日志
+#   docker compose exec app sh      进容器
+#   docker compose down             停止（数据保留在卷里）
+#
+# ⚠️ 上线前必须在 .env 里设置 CC_SECRET 与 CC_ADMIN_PASSWORD，
+#    否则 CC_ENV=production 会拒绝启动（这是刻意的安全护栏）。
+# ============================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cigar-community:latest
+    container_name: cigar-community
+    restart: unless-stopped
+    ports:
+      - "${CC_PORT:-8787}:8787"
+    environment:
+      CC_ENV: production
+      CC_HOST: 0.0.0.0
+      CC_PORT: 8787
+      CC_DB_PATH: /data/cigar.db
+      CC_UPLOAD_DIR: /data/uploads
+      CC_SECRET: "${CC_SECRET:?必须在 .env 中设置 CC_SECRET（node -e \"console.log(require('node:crypto').randomBytes(32).toString('hex'))\"）}"
+      CC_ADMIN_USER: "${CC_ADMIN_USER:-admin}"
+      CC_ADMIN_PASSWORD: "${CC_ADMIN_PASSWORD:?必须在 .env 中设置 CC_ADMIN_PASSWORD}"
+      # ⚠️ 仅当确实部署在反向代理之后才调大：容器前若没有代理却信任 XFF，
+      # 攻击者可伪造该头绕过限流（详见 docs/DEPLOYMENT.md）
+      CC_TRUST_PROXY: "${CC_TRUST_PROXY:-0}"
+    volumes:
+      # 数据卷：SQLite 库 + 上传图片。不挂卷则容器重建即丢数据
+      - cigar-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8787/api/health').then(r=>r.json()).then(j=>process.exit(j.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    # SQLite 写入是单点，容器只需要很小资源；这里给个软上限避免占满宿主机
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+volumes:
+  cigar-data:
+    driver: local

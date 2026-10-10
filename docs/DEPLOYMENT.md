@@ -255,3 +255,113 @@ tail -50 logs/server.log
 
 多实例前必须解决的两件事：**限流共享** 与 **数据库写入单点**。
 只做前者会出现「同一账号在多实例上各自计数」的漏洞。
+
+---
+
+## 八、Docker 部署
+
+镜像已就绪：多阶段构建、**非 root 运行**、零生产依赖（后端只用 `node:` 内置模块，
+runtime 阶段没有 `node_modules`）、内置健康检查。
+
+```bash
+cp .env.example .env
+# 必改两项，否则容器会拒绝启动（生产护栏）
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"   # → CC_SECRET
+# CC_ADMIN_PASSWORD 设一个强口令
+
+docker compose up -d
+docker compose logs -f
+```
+
+**数据持久化是这里唯一的硬要求**：SQLite 库与上传图片都在 `/data`（`cigar-data` 卷）。
+不挂卷的话，容器一重建就丢库丢图 —— 在无状态平台上这是最常见的翻车点。
+
+```bash
+docker compose exec app sh          # 进容器
+docker compose down                 # 停止，卷保留
+docker compose down -v              # ⚠️ 连数据卷一起删
+```
+
+首次启动会自动建库并导入种子（42 行 → 40 款去重后的雪茄）。想手动重建：
+
+```bash
+docker compose exec app node scripts/seed.mjs --reset
+```
+
+镜像内置健康检查，编排系统可直接依赖：
+
+```bash
+docker inspect --format='{{.State.Health.Status}}' cigar-community
+```
+
+## 九、云平台注意事项（选型时先读这段）
+
+这个项目的运行期依赖是 **SQLite 文件 + 本地文件系统（上传图片）**。
+这直接决定了哪些平台能直接用、哪些需要改造：
+
+| 平台 | 能否直接跑 | 说明 |
+|---|---|---|
+| **Fly.io** | ✅ 可以 | 支持挂持久卷（`fly volumes create`），把卷挂到 `/data` 即可。**推荐** |
+| **Railway** | ⚠️ 需挂卷 | 支持 Volume，挂到 `/data`。不挂卷则每次部署丢数据 |
+| **Render** | ⚠️ 需付费盘 | 免费实例无持久盘，重启即丢 SQLite |
+| **VPS / 自己的 Mac mini** | ✅ 最省事 | 见 §一、§二，无需容器 |
+| **Cloudflare Workers** | ❌ 不能直接用 | Workers 没有文件系统，`node:sqlite` 与 `/data` 都不存在。要上 Cloudflare 得换 D1 + R2 并重写 `server/db/index.js` 与 `server/lib/storage.js` |
+| **Vercel / Netlify** | ❌ 不适合 | 面向无状态函数，不适合常驻写 SQLite 的服务 |
+
+**判断口径**：只要平台能给「一个常驻进程 + 一个可挂载的持久卷」，就能直接跑。
+缺任一项，就要改造成托管数据库 + 对象存储。
+
+### Fly.io 最小步骤
+
+```bash
+fly launch --no-deploy          # 生成 fly.toml
+fly volumes create cigar_data --size 1   # 1GB 足够起步
+```
+
+`fly.toml` 关键片段：
+
+```toml
+[env]
+  CC_ENV = "production"
+  CC_DB_PATH = "/data/cigar.db"
+  CC_UPLOAD_DIR = "/data/uploads"
+  CC_TRUST_PROXY = "1"          # Fly 前面有代理层
+
+[[mounts]]
+  source = "cigar_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # 单实例：SQLite 写入是单点，多实例会互相锁
+  min_machines_running = 1
+```
+
+```bash
+fly secrets set CC_SECRET=$(node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))")
+fly secrets set CC_ADMIN_PASSWORD='你的强口令'
+fly deploy
+```
+
+> **不要给这个服务配多个实例**。SQLite 是单写入者，多实例同时写会互相锁；
+> 真要横向扩容，先按 [ARCHITECTURE §七](ARCHITECTURE.md) 迁到 MySQL。
+
+### 关于对象存储
+
+图片当前存在本地卷（`CC_UPLOAD_DIR`）。若要迁到 S3/R2，
+只需替换 `server/lib/storage.js` 的 `saveImage` / `readImage` 两个函数 ——
+调用方（`server/api/misc.js`、`server/api/reviews.js`）无需改动。
+这是当初把存储单独成模块的原因。
+
+## 十、CI
+
+`.github/workflows/ci.yml` 在两个层面把关：
+
+1. **测试任务**：`npm ci` → 构建 → 建库 → 单元测试 + 206 项契约断言 →
+   启动服务 → 前端 DOM 断言（51 项）→ 管理后台断言（27 项）→ 上线预检
+2. **镜像任务**：`docker build` → 起容器 → **等健康检查变 healthy** →
+   验证接口与前端都可用 → 清理
+
+镜像任务里特意「等健康检查」而不是「等端口」：端口开了不代表能服务，
+健康检查走的是应用自己的 `/api/health`（会真的查一次数据库）。

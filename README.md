@@ -181,7 +181,18 @@ MOCK 中不重复的 27 款作为补充；6 处真正重复的（同一支雪茄
 
 ## 部署
 
-**单机部署（推荐，最简单）**：
+**Docker（推荐，一条命令）**：
+
+```bash
+cp .env.example .env    # 必改 CC_SECRET 与 CC_ADMIN_PASSWORD，否则拒绝启动
+docker compose up -d
+```
+
+数据（SQLite 库 + 上传图片）落在 `cigar-data` 卷的 `/data`。
+云平台选型与限制见 [docs/DEPLOYMENT.md §九](docs/DEPLOYMENT.md) —— 简单说：
+**需要「常驻进程 + 可挂载持久卷」**，所以 Fly.io 可以，Cloudflare Workers 不行（无文件系统）。
+
+**手动单机部署（最简单，无容器）**：
 
 ```bash
 git clone <repo> && cd cigar-community

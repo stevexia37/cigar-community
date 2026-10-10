@@ -1,0 +1,30 @@
+# 构建上下文排除项：镜像里不该出现的东西
+.git
+.gitignore
+node_modules
+**/node_modules
+
+# 数据与运行产物（必须走卷，不能烤进镜像）
+database/*.db
+database/*.db-wal
+database/*.db-shm
+uploads/
+backups/
+logs/
+state/
+_shots/
+_archive/
+
+# 本地配置与凭证
+.env
+.env.*
+!.env.example
+
+# 开发期辅助（体积大且与运行无关）
+deployment/
+monetization/
+operations/
+legal/
+docs/
+README.md
+LICENSE
