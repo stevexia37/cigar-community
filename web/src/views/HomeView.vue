@@ -155,6 +155,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { onAgeGateOpen } from '@/composables/ageGateSignal.js'
 import api from '@/api/client.js'
 import CigarCard from '@/components/CigarCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -195,6 +196,14 @@ onMounted(() => {
   loadMeta()
   loadCigars()
   loadReviews()
+})
+
+// 年龄门放行后重新拉数据：首次挂载时请求被 403 拦下，
+// 若不重试，用户确认年龄后首页会一直停在错误提示（真实踩过）
+onAgeGateOpen(() => {
+  if (metaError.value) loadMeta()
+  if (cigarsError.value) loadCigars()
+  if (reviewsError.value) loadReviews()
 })
 
 async function loadMeta() {

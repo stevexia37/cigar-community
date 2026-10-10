@@ -543,7 +543,11 @@ npm run preflight     → 35 通过 / 0 失败 / 1 警告（仅「未找到 .env
    连同另外 13 个 `count=0` 的项，风味轮会出现 14 个筛不出任何结果的标签。
 10. **`app_meta.db_version` 只在缺失时写入**（`stampVersion()` 不做 UPDATE），升级后版本戳不会刷新；
     且 `node scripts/seed.mjs --reset` 后 `app_meta` 为空（只有启动服务器才补写）。
-11. **年龄门只在客户端 + 可选 Cookie 层**：`readAgeGate()` 的结果不被任何业务接口强制
+11. ~~**年龄门只在客户端 + 可选 Cookie 层**：`readAgeGate()` 的结果不被任何业务接口强制~~
+    **已修**：`assertAgeGate()` 已在 `/api/*` 入口强制，未过门返回 `403 AGE_GATE_REQUIRED`。
+    豁免路径（爬虫、`/api/health`、`/api/auth/me`、`/api/gate/verify`、已登录用户）写在
+    `server/index.js` 的 `AGE_GATE_EXEMPT` 与 `server/middleware/auth.js` 里，各有注释说明理由。
+    配套断言：`scripts/api-smoke.sh` §0（匿名被拒 / 爬虫放行 / 豁免路径可达）。
     （契约明确「不影响业务接口」），因此 `cc_age` 无法阻止直接调 API 的用户；`localStorage['cc-age-ok']`
     也可被用户自行写入。符合当前契约，但作为「烟草内容合规门槛」建议在 Nginx/边缘层再兜一道。
 12. **`deployment/checklist.md §1.3` 与本实现完全对不上**（详见下节），而 README 称其为「验收标准仍有效」。

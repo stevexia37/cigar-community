@@ -32,6 +32,8 @@ services:
       # ⚠️ 仅当确实部署在反向代理之后才调大：容器前若没有代理却信任 XFF，
       # 攻击者可伪造该头绕过限流（详见 docs/DEPLOYMENT.md）
       CC_TRUST_PROXY: "${CC_TRUST_PROXY:-0}"
+      # 服务端强制 18+ 年龄门。这里显式写 0（开启），避免有人以为默认关闭而误开测试开关
+      CC_AGE_GATE_DISABLED: "0"
     volumes:
       # 数据卷：SQLite 库 + 上传图片。不挂卷则容器重建即丢数据
       - cigar-data:/data

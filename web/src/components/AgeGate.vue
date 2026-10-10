@@ -38,6 +38,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/api/client.js'
+import { emitAgeGateOpen } from '@/composables/ageGateSignal.js'
 
 const STORAGE_KEY = 'cc-age-ok'
 const visible = ref(false)
@@ -73,6 +74,9 @@ async function confirm() {
     await api.verifyAge(true)
     remember()
     visible.value = false
+    // 通知各视图重新拉取数据：它们在挂载时被 403 拦过一次，
+    // 不重试的话用户确认后仍会看到「请先确认已满 18 周岁」
+    emitAgeGateOpen()
   } catch (err) {
     error.value = err.humanMessage || '确认失败，请稍后重试'
   } finally {

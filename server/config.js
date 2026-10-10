@@ -50,6 +50,10 @@ export const config = {
   trustProxy: Math.max(0, Number(env('CC_TRUST_PROXY', 0)) || 0),
   /** 关闭限流：仅供自动化测试使用（生产环境永远不应开启） */
   rateLimitDisabled: env('CC_RATE_LIMIT_DISABLED', '') === '1',
+  // 服务端年龄门。默认开启；契约测试与前端断言用 CC_AGE_GATE_DISABLED=1 关闭。
+  // 与 CC_RATE_LIMIT_DISABLED 同样的显式开关：宁可让测试里出现一个清晰的禁用声明，
+  // 也不要为了让测试方便而让生产默认放行。
+  ageGateDisabled: env('CC_AGE_GATE_DISABLED', '') === '1',
   /** 静默启动日志：仅供自动化测试使用 */
   quiet: env('CC_QUIET', '') === '1',
   paths: {

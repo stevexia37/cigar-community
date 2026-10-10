@@ -40,7 +40,7 @@ import {
 import { createStaticHandler } from './lib/static.js'
 import { resolveMeta, buildSitemap, buildRobots } from './lib/seo.js'
 import { readImage } from './lib/storage.js'
-import { attachAuth, purgeExpiredSessions } from './middleware/auth.js'
+import { attachAuth, assertAgeGate, purgeExpiredSessions } from './middleware/auth.js'
 import { metaRouter } from './api/meta.js'
 import { cigarRouter } from './api/cigars.js'
 import { toolRouter } from './api/tools.js'
@@ -140,6 +140,13 @@ async function handle(req, res) {
   }
 
   if (pathname === '/api' || pathname.startsWith('/api/')) {
+    // 年龄门：在业务处理之前拦截。这三类路径是有意放行的 ——
+    // 门自身（否则无法通过）、健康检查（探活）、以及爬虫（由 req.ageVerified 里的 isBot 放行，用于 SEO 与分享卡片）
+    // /api/auth/me 也在放行之列：它只返回「我是谁 + 是否已过门」这种状态，
+    // 不含任何内容。若把它也拦掉，前端就无法判断该弹年龄门还是登录框 —— 自相矛盾。
+    const AGE_GATE_EXEMPT = ['/api/gate/verify', '/api/health', '/api/auth/me']
+    if (!AGE_GATE_EXEMPT.includes(pathname)) assertAgeGate(req)
+
     if (WRITE_METHODS.has(req.method)) {
       checkLimit(limiterFor(pathname), req, res)
       req.body = await readBody(req)

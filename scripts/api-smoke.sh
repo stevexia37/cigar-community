@@ -57,6 +57,12 @@ request() {
   LAST_BODY="$(cat "$BODY" 2>/dev/null)"
 }
 
+# 给一个独立 cookie jar 过年龄门（独立 jar 不会自动带上共享 jar 的 cc_age）
+pass_age_gate() { # jar
+  curl -sS -o /dev/null -b "$1" -c "$1" -X POST "$BASE/api/gate/verify" \
+    -H 'content-type: application/json' -d '{"adult":true}' 2>/dev/null
+}
+
 expect_status() { # name expected
   if [[ "$LAST_STATUS" == "$2" ]]; then ok "$1 (HTTP $LAST_STATUS)"
   else bad "$1" "期望 HTTP $2，实际 $LAST_STATUS — ${LAST_BODY:0:200}"; fi
@@ -91,6 +97,49 @@ if ! printf '%s' "$PROBE_JSON" | grep -q '"version"'; then
 fi
 
 printf '%s\n' "$(color '1;36' "雪茄客 API 冒烟测试 · $BASE")"
+
+# ---------------------------------------------------------------- 0 年龄门强制
+group "0 年龄门：服务端强制（不能只靠前端弹窗）"
+
+# 用独立临时 jar，确保「未过门」的状态是干净的
+NOAGE_JAR="$(mktemp -t cc-noage.XXXXXX)"
+AGE_CODE="$(curl -sS -o "$BODY" -w '%{http_code}' -b "$NOAGE_JAR" -c "$NOAGE_JAR" "$BASE/api/cigars")"
+if [[ "$AGE_CODE" == "403" ]] && [[ "$(jq -r '.code' "$BODY" 2>/dev/null)" == "AGE_GATE_REQUIRED" ]]; then
+  ok "未过年龄门时内容接口被拒（403 AGE_GATE_REQUIRED）"
+else
+  bad "年龄门未强制" "GET /api/cigars 返回 HTTP $AGE_CODE — $(head -c 120 "$BODY")"
+fi
+for ep in /api/meta /api/cigars/1 /api/reviews; do
+  C="$(curl -sS -o /dev/null -w '%{http_code}' -b "$NOAGE_JAR" "$BASE$ep")"
+  if [[ "$C" == "403" ]]; then ok "未过门时 $ep 被拒"
+  else bad "年龄门未覆盖 $ep" "返回 HTTP $C"; fi
+done
+
+# 爬虫必须放行 —— 站点定位是非交易向知识社区，需要被收录、
+# 分享卡片也要能抓取。爬虫不是「人」，这是有意的取舍。
+if [[ "$(curl -sS -o /dev/null -w '%{http_code}' -A 'Googlebot/2.1' "$BASE/api/cigars")" == "200" ]]; then
+  ok "爬虫 UA 放行（保证 SEO 与分享卡片可用）"
+else
+  bad "爬虫被年龄门拦截" "会让站点无法被收录"
+fi
+
+# 健康检查与年龄门接口自身必须放行，否则永远无法通过 / 无法探活
+for ep in /api/health /api/gate/verify; do
+  if [[ "$ep" == "/api/gate/verify" ]]; then
+    C="$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{"adult":true}' "$BASE$ep")"
+  else
+    C="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE$ep")"
+  fi
+  if [[ "$C" == "200" ]]; then ok "放行 $ep"
+  else bad "误拦 $ep" "返回 HTTP $C"; fi
+done
+rm -f "$NOAGE_JAR"
+
+# 为后续分组建立年龄 cookie（共享 jar）
+request POST /api/gate/verify '{"adult":true}'
+expect_status "（准备）通过年龄门" 200
+request GET /api/cigars
+expect_status "（准备）过门后内容可读" 200
 
 # ---------------------------------------------------------------- 1 健康与元数据
 group "1 健康检查与元数据"
@@ -268,9 +317,20 @@ expect_json   "正当讨论不熔断" '.action' 'clean'
 # ---------------------------------------------------------------- 5 年龄门（checklist 1.2）
 group "5 年龄门（对照 deployment/checklist.md §1.2）"
 
+# 用独立 jar 观察「未过门」状态：共享 jar 在 §0 已经过了门，
+# 再用它断言 ageVerified=false 必然自相矛盾（这个重复断言真实出现过）
+GATE_JAR="$(mktemp -t cc-gate.XXXXXX)"
 request GET /api/auth/me
-expect_status "匿名会话可查" 200
-expect_json   "1.2.4 未通过年龄门时 ageVerified=false" '.ageVerified' 'false'
+expect_status "匿名会话可查（共享 jar 已过门）" 200
+expect_json   "1.2.4 通过后 ageVerified=true" '.ageVerified' 'true'
+
+GATE_ME="$(curl -sS -b "$GATE_JAR" "$BASE/api/auth/me")"
+if [[ "$(printf '%s' "$GATE_ME" | jq -r '.ageVerified')" == "false" ]]; then
+  ok "1.2.4 未过门的会话 ageVerified=false"
+else
+  bad "未过门会话状态" "ageVerified=$(printf '%s' "$GATE_ME" | jq -r '.ageVerified')"
+fi
+rm -f "$GATE_JAR"
 
 request POST /api/gate/verify '{"adult":false}'
 expect_status "1.2.3 拒绝年龄确认" 403
@@ -367,8 +427,13 @@ expect_json   "标记我已投票" '.helpfulByMe' 'true'
 request POST "/api/reviews/$REVIEW_ID/helpful"
 expect_json   "重复投票为幂等取消" '.helpfulCount' '0'
 
-# 未登录不可投票
-NOAUTH_STATUS="$(curl -sS -o "$BODY" -w '%{http_code}' -X POST "$BASE/api/reviews/$REVIEW_ID/helpful")"
+# 未登录不可投票。
+# 必须用「已过年龄门但未登录」的 jar：共享 jar 已经登录，用它测不出 401；
+# 而完全不带的请求又会被年龄门拦成 403（测的就不是鉴权了）。
+VOTE_JAR="$(mktemp -t cc-vote.XXXXXX)"
+pass_age_gate "$VOTE_JAR"
+NOAUTH_STATUS="$(curl -sS -o "$BODY" -w '%{http_code}' -b "$VOTE_JAR" -X POST "$BASE/api/reviews/$REVIEW_ID/helpful")"
+rm -f "$VOTE_JAR"
 if [[ "$NOAUTH_STATUS" == "401" ]]; then ok "未登录投票返回 401"
 else bad "未登录投票" "期望 401，实际 $NOAUTH_STATUS"; fi
 
@@ -474,17 +539,24 @@ expect_json   "登出后会话失效" '.user' 'null'
 group "11 安全回归（防止已修缺陷复发）"
 
 # S3：X-Forwarded-For 伪造不得绕过限流（需要限流开启，故仅在实际开启时断言）
-XFF_CODE="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE/api/auth/login" \
-  -H 'content-type: application/json' -H 'x-forwarded-for: 10.9.9.9' \
-  -d '{"username":"admin","password":"wrong"}')"
-if [[ "$XFF_CODE" == "429" ]]; then
-  ok "伪造 XFF 无法绕过限流（429）"
+# 必须带年龄门凭证：否则先被年龄门 403，这条断言就测不到限流行为了（真实踩过）
+# 连续打多次：单次不能证明「无法通过换 XFF 绕过」，需要观察是否会被累计限流
+XFF_CODES=""
+for _i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+  XFF_CODES="$XFF_CODES$(curl -sS -o /dev/null -w '%{http_code} ' -b "$JAR" -X POST "$BASE/api/auth/login" \
+    -H 'content-type: application/json' -H "x-forwarded-for: 10.9.9.$_i" \
+    -d '{"username":"admin","password":"wrong"}')"
+done
+if printf '%s' "$XFF_CODES" | grep -q '429'; then
+  ok "伪造 XFF 无法绕过限流（12 次不同 XFF 后出现 429）"
+elif printf '%s' "$XFF_CODES" | grep -q '403'; then
+  bad "XFF 限流断言被年龄门掩盖" "出现 403，说明请求没带年龄门凭证：$XFF_CODES"
 else
-  ok "伪造 XFF 请求被处理（HTTP $XFF_CODE；限流已由 CC_RATE_LIMIT_DISABLED 关闭时不断言）"
+  ok "限流已关闭（CC_RATE_LIMIT_DISABLED=1），跳过 XFF 绕过断言：$XFF_CODES"
 fi
 
 # M4：非 JSON 内容类型必须明确拒绝，而不是静默返回字段全空的对象
-NOTJSON="$(curl -sS -o "$BODY" -w '%{http_code}' -X POST "$BASE/api/tools/check-text" \
+NOTJSON="$(curl -sS -o "$BODY" -w '%{http_code}' -b "$JAR" -X POST "$BASE/api/tools/check-text" \
   -H 'content-type: text/plain' -d '{"text":"有货私聊加微信"}')"
 LAST_STATUS="$NOTJSON"
 LAST_BODY="$(cat "$BODY" 2>/dev/null)"
@@ -493,12 +565,12 @@ expect_json   "415 使用 UNSUPPORTED_MEDIA_TYPE" '.code' 'UNSUPPORTED_MEDIA_TYP
 
 # S5：分页参数任何取值都不得 500
 for bad in "pageSize=1.5" "page=1.1" "page=1e18" "page=999999999999999999" "pageSize=-3" "page=abc"; do
-  PCODE="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/api/cigars?$bad")"
+  PCODE="$(curl -sS -o /dev/null -w '%{http_code}' -b "$JAR" "$BASE/api/cigars?$bad")"
   if [[ "$PCODE" == "200" ]]; then ok "分页参数 $bad 不报错（200）"
   else bad "分页参数 $bad" "期望 200，实际 $PCODE"; fi
 done
 for bad in "pageSize=1.5" "page=1e18"; do
-  PCODE="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/api/reviews?$bad")"
+  PCODE="$(curl -sS -o /dev/null -w '%{http_code}' -b "$JAR" "$BASE/api/reviews?$bad")"
   if [[ "$PCODE" == "200" ]]; then ok "笔记分页 $bad 不报错（200）"
   else bad "笔记分页 $bad" "期望 200，实际 $PCODE"; fi
 done
@@ -527,6 +599,8 @@ expect_json "品牌已按 Unicode 归一化去重（不含 Padrón 与 Padron �
 PWD_USER="pwdtest_$(date +%s)_$RANDOM"
 PWD_JAR1="$(mktemp -t cc-j1.XXXXXX)"
 PWD_JAR2="$(mktemp -t cc-j2.XXXXXX)"
+pass_age_gate "$PWD_JAR1"
+pass_age_gate "$PWD_JAR2"
 curl -sS -c "$PWD_JAR1" -b "$PWD_JAR1" -X POST "$BASE/api/auth/register" \
   -H 'content-type: application/json' \
   -d "{\"username\":\"$PWD_USER\",\"password\":\"InitPass12345\"}" >/dev/null 2>&1
@@ -541,9 +615,9 @@ CHANGE="$(curl -sS -b "$PWD_JAR1" -X POST "$BASE/api/auth/password" -H 'content-
   -d '{"currentPassword":"InitPass12345","newPassword":"ChangedPass12345"}')"
 u1_after="$(curl -sS -b "$PWD_JAR1" "$BASE/api/auth/me" | jq -r '.user.username // "null"')"
 u2_after="$(curl -sS -b "$PWD_JAR2" "$BASE/api/auth/me" | jq -r '.user.username // "null"')"
-OLD_LOGIN="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE/api/auth/login" \
+OLD_LOGIN="$(curl -sS -o /dev/null -w '%{http_code}' -b "$JAR" -X POST "$BASE/api/auth/login" \
   -H 'content-type: application/json' -d "{\"username\":\"$PWD_USER\",\"password\":\"InitPass12345\"}")"
-NEW_LOGIN="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE/api/auth/login" \
+NEW_LOGIN="$(curl -sS -o /dev/null -w '%{http_code}' -b "$JAR" -X POST "$BASE/api/auth/login" \
   -H 'content-type: application/json' -d "{\"username\":\"$PWD_USER\",\"password\":\"ChangedPass12345\"}")"
 
 if [[ "$u2_before" == "$PWD_USER" && "$u1_after" == "$PWD_USER" && "$u2_after" == "null" ]]; then
@@ -563,7 +637,7 @@ rm -f "$PWD_JAR1" "$PWD_JAR2"
 group "12 管理后台（权限 / 审核闭环 / 运营数据）"
 
 # 权限：普通用户（当前会话是 admin，这里用未登录态验证 401）
-NOAUTH_ADMIN="$(curl -sS -o "$BODY" -w '%{http_code}' "$BASE/api/admin/stats")"
+NOAUTH_ADMIN="$(curl -sS -o "$BODY" -w '%{http_code}' -b "$JAR" "$BASE/api/admin/stats")"
 LAST_STATUS="$NOAUTH_ADMIN"; LAST_BODY="$(cat "$BODY")"
 expect_status "未登录访问管理接口被拒" 401
 
@@ -597,14 +671,15 @@ expect_json   "用户项含角色与状态" '(.items[0] | has("role") and has("s
 # 审批闭环：投稿 → 通过 → 必须真的入库
 SUB_USER="subm_$(date +%s)_$RANDOM"
 SUB_JAR="$(mktemp -t cc-sub.XXXXXX)"
+pass_age_gate "$SUB_JAR"
 curl -sS -c "$SUB_JAR" -b "$SUB_JAR" -X POST "$BASE/api/auth/register" \
   -H 'content-type: application/json' \
   -d "{\"username\":\"$SUB_USER\",\"password\":\"SubPass12345\"}" >/dev/null 2>&1
 
 # 幂等准备：删掉上一次运行留下的测试品牌（级联删除其雪茄），
 # 否则第二轮会走「更新已有」路径，导致「总数净增」断言失败 —— 这是断言设计缺陷，不是产品缺陷。
-CIGARS_BEFORE="$(curl -sS "$BASE/api/meta" | jq -r '.stats.cigars')"
-SMOKE_BRAND_EXISTS="$(curl -sS "$BASE/api/meta" | jq -r '[.brands[] | select(.name == "SmokeTestBrand")] | length')"
+CIGARS_BEFORE="$(curl -sS -b "$JAR" "$BASE/api/meta" | jq -r '.stats.cigars // 0')"
+SMOKE_BRAND_EXISTS="$(curl -sS -b "$JAR" "$BASE/api/meta" | jq -r '[(.brands // [])[] | select(.name == "SmokeTestBrand")] | length')"
 if [[ "${SMOKE_BRAND_EXISTS:-0}" != "0" ]]; then
   # 通过投稿驳回路径之外的方式清理：直接用种子重置不合适（会清评审数据），
   # 这里用「删除该品牌的雪茄」不可行（无删除接口），因此改为断言「品牌已被复用」而非「总数净增」。
@@ -630,10 +705,10 @@ expect_json   "入库雪茄品牌正确" '.cigar.brand' 'SmokeTestBrand'
 expect_json   "入库雪茄标记来源为用户投稿" '.cigar.dataSource' 'user'
 expect_json   "入库雪茄带上了风味标签" '(.cigar.flavors | length > 0)' 'true'
 
-CIGARS_AFTER="$(curl -sS "$BASE/api/meta" | jq -r '.stats.cigars')"
+CIGARS_AFTER="$(curl -sS -b "$JAR" "$BASE/api/meta" | jq -r '.stats.cigars // 0')"
 if [[ "${SKIP_COUNT_CHECK:-0}" == "1" ]]; then
   ok "测试品牌已存在（复用而非新建），跳过「总数净增」断言（$CIGARS_AFTER 款）"
-elif [[ "${CIGARS_AFTER:-0}" -gt "${CIGARS_BEFORE:-0}" ]]; then
+elif [[ "${CIGARS_AFTER:-0}" =~ ^[0-9]+$ && "${CIGARS_BEFORE:-0}" =~ ^[0-9]+$ && "${CIGARS_AFTER}" -gt "${CIGARS_BEFORE}" ]]; then
   ok "雪茄总数净增（$CIGARS_BEFORE → $CIGARS_AFTER）"
 else
   bad "雪茄总数应净增" "$CIGARS_BEFORE → $CIGARS_AFTER"
@@ -689,8 +764,11 @@ expect_json   "限制里含允许的 MIME 类型" '(.allowed | length > 0)' 'tru
 # 未登录必须拒绝（用独立临时 jar，避免污染共享会话 jar —— 这里曾踩过坑：
 # 不带 -b/-c 的请求与 $JAR 是两个不同的会话，导致后续断言全部误报 401）
 NOAUTH_JAR="$(mktemp -t cc-noauth.XXXXXX)"
+# 先过年龄门再测鉴权：否则会先撞年龄门拿到 403，
+# 这条断言就不再是在测「未登录被拒」了（真实踩过）
+pass_age_gate "$NOAUTH_JAR"
 NOAUTH_UP="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE/api/uploads" \
-  -c "$NOAUTH_JAR" -H 'content-type: application/json' -d '{"data":"data:image/png;base64,AAAA"}')"
+  -b "$NOAUTH_JAR" -c "$NOAUTH_JAR" -H 'content-type: application/json' -d '{"data":"data:image/png;base64,AAAA"}')"
 rm -f "$NOAUTH_JAR"
 if [[ "$NOAUTH_UP" == "401" ]]; then ok "未登录上传被拒（HTTP 401）"
 else bad "未登录上传应被拒" "实际 HTTP $NOAUTH_UP"; fi
@@ -728,7 +806,7 @@ request POST /api/uploads "{\"data\":\"data:image/png;base64,$REAL_PNG\"}"
 expect_json "同图重复上传复用同一地址（内容寻址）" '.image.url' "$UPLOAD_URL"
 
 # 图片数量超限必须截断到 maxPerReview（与限制接口同源），而不是静默丢弃或报错
-LIMIT_N="$(curl -sS "$BASE/api/uploads/limits" | jq -r '.maxPerReview')"
+LIMIT_N="$(curl -sS -b "$JAR" "$BASE/api/uploads/limits" | jq -r '.maxPerReview // 6')"
 OVER_JSON="$(node -e "
 const n=Number('$LIMIT_N')+2;
 console.log(JSON.stringify(Array.from({length:n},()=>'$UPLOAD_URL')))")"

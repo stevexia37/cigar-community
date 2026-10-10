@@ -222,6 +222,12 @@ async function main() {
     consoleErrors = []
     if (gated) {
       await client.send('Network.clearBrowserCookies')
+      // 也要清 localStorage 的「本地已确认」标记：否则 AgeGate 会直接放行、
+      // 不弹窗，而服务端仍按无 cookie 拒绝 —— 页面就卡在错误提示上。
+      // 单清 cookie 清不出「真正的首次访问」，这个坑真实踩过。
+      try {
+        await evalJs('try { localStorage.removeItem("cc-age-ok") } catch (e) {} return true')
+      } catch { /* 页面可能还没加载完，忽略 */ }
     } else {
       await client.send('Network.setCookie', {
         name: 'cc_age', value: await ageCookieValue(), domain: '127.0.0.1', path: '/',
@@ -268,12 +274,33 @@ async function main() {
 
   // ---------------------------------------------------------------- 首页
   group('首页')
+
+  // 年龄门放行后必须自动重新拉数据。
+  // 服务端强制年龄门后，首屏请求必然被 403 拦一次；若视图只在 onMounted 加载，
+  // 用户确认年龄后界面会永远停在「请先确认已满 18 周岁」——这个回归真实发生过。
+  await goto('/', { gated: true })
+  const blockedText = await text()
+  assert(/请先确认已满/.test(blockedText), '未过门时首页给出年龄门提示（数据请求被 403）', blockedText.slice(0, 160))
+  await evalJs(`
+    const b = [...document.querySelectorAll('[role="dialog"] button')].find(x => x.textContent.includes('我已年满'))
+    if (b) b.click()
+    return !!b
+  `)
+  await sleep(3000)
+  const recoveredText = await text()
+  assert(!/请先确认已满/.test(recoveredText), '确认年龄后错误提示消失')
+  assert(/在库雪茄|收录品牌/.test(recoveredText), '确认年龄后首页自动重新加载出真实统计', recoveredText.slice(0, 160))
+
   await goto('/')
   assert(!(await evalJs('return !!document.querySelector(\'[role="dialog"]\')')), '已通过年龄门后不再弹出')
   const homeText = await text()
   assert(homeText.includes('不卖茄'), '渲染站点主张')
-  // 不写死数字：从接口取真实总量再比对，否则每次扩充数据这条断言都会失效
-  const metaStats = await fetch(`${BASE}/api/meta`).then((r) => r.json()).then((j) => j.stats).catch(() => null)
+  // 不写死数字：从接口取真实总量再比对，否则每次扩充数据这条断言都会失效。
+  // ⚠️ 必须带年龄门凭证：服务端现在会强制拦截未过门的 /api/* 请求（403 AGE_GATE_REQUIRED），
+  // 用裸 fetch 会拿到 403 而不是数据（这个探针请求本身踩过）。
+  const metaStats = await fetch(`${BASE}/api/meta`, {
+    headers: { cookie: `cc_age=${await ageCookieValue()}` },
+  }).then((r) => (r.ok ? r.json() : null)).then((j) => j?.stats ?? null).catch(() => null)
   const expectCount = metaStats?.cigars
   assert(expectCount > 0 && homeText.includes(String(expectCount)),
     `首页展示雪茄总数（来自 /api/meta：${expectCount}）`, homeText.slice(0, 200))
@@ -389,9 +416,10 @@ async function main() {
   group('图片上传（客户端压缩 → 上传 → 展示）')
   // 现场注册一个用户拿到会话，才能进「写品吸笔记」页
   const imgUser = `imgui${Date.now().toString().slice(-8)}`
+  // 带年龄门凭证：服务端强制年龄门后，不带 cc_age 的注册会被 403 拦下
   const regRes = await fetch(`${BASE}/api/auth/register`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', cookie: `cc_age=${await ageCookieValue()}` },
     body: JSON.stringify({ username: imgUser, password: 'ImgUiPass12345' }),
   })
   const imgCookie = (regRes.headers.getSetCookie?.() || []).find((x) => x.startsWith('cc_sid='))
@@ -461,9 +489,12 @@ async function main() {
 
 /** 用账号口令换会话 Cookie（本脚本内的清理需要管理员身份） */
 async function loginCookie(username, password) {
+  // 登录接口也在年龄门之内（只有已登录会话与少数状态接口豁免），
+  // 所以这里必须带上 cc_age，否则拿到 403 而不是会话
+  const ageCookie = await ageCookieValue()
   const res = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', cookie: `cc_age=${ageCookie}` },
     body: JSON.stringify({ username, password }),
   })
   if (!res.ok) throw new Error(`登录失败：HTTP ${res.status}`)

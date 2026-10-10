@@ -30,13 +30,30 @@ fail() { FAIL=$((FAIL+1)); FAILED+=("$1"); printf '  %s %s\n      %s\n' "$(c 31 
 warn() { WARN=$((WARN+1)); printf '  %s %s\n      %s\n' "$(c 33 '!')" "$1" "$2"; }
 grp()  { printf '\n%s\n' "$(c '1;33' "▌$1")"; }
 
+# 年龄门凭证：服务端强制年龄门后，未带 cc_age 的 /api/* 一律 403。
+# 体检脚本必须先过门，否则「元数据接口」「雪茄列表」等检查全部失败 ——
+# 那是脚本没带凭证，不是站点有问题（这个假失败真实发生过）。
+AGE_COOKIE=""
+AGE_HEADER=()
+pass_age_gate() {
+  local hdr
+  hdr="$(curl -sS -D- -o /dev/null --max-time 10 -X POST "$BASE/api/gate/verify" \
+    -H 'content-type: application/json' -d '{"adult":true}' 2>/dev/null \
+    | tr -d '\r' | grep -i '^set-cookie: *cc_age=' | head -1)"
+  AGE_COOKIE="$(printf '%s' "$hdr" | sed -n 's/.*cc_age=\([^;]*\).*/\1/p')"
+  if [[ -n "$AGE_COOKIE" ]]; then AGE_HEADER=(-H "cookie: cc_age=$AGE_COOKIE"); fi
+}
+
 get() { # path -> sets STATUS / BODY_CONTENT
-  STATUS="$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 10 "$BASE$1" 2>/dev/null || echo 000)"
+  STATUS="$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 10 "${AGE_HEADER[@]}" "$BASE$1" 2>/dev/null || echo 000)"
   BODY_CONTENT="$(cat "$BODY" 2>/dev/null)"
 }
 jqv() { printf '%s' "$BODY_CONTENT" | jq -r "$1" 2>/dev/null; }
 
 command -v jq >/dev/null || { echo "需要 jq：brew install jq"; exit 1; }
+
+# 先过年龄门，后续所有 /api/* 检查都要带凭证
+pass_age_gate
 
 printf '%s\n' "$(c '1;36' "雪茄客 上线前预检 · $BASE")"
 printf '%s\n' "$(c 90 "$(date '+%Y-%m-%d %H:%M:%S')")"
@@ -111,7 +128,8 @@ get /api/tools/aging-calc
 
 # 合规熔断必须在「无登录」状态下也能正确工作（预检不建账号）
 check_text() { # text -> action
-  curl -sS --max-time 10 -X POST "$BASE/api/tools/check-text" \
+  # 必须带年龄门凭证：/api/tools/* 在年龄门之内，不带会被 403 拦成空 action
+  curl -sS --max-time 10 "${AGE_HEADER[@]}" -X POST "$BASE/api/tools/check-text" \
     -H 'content-type: application/json' \
     -d "$(jq -nc --arg t "$1" '{text:$t}')" 2>/dev/null | jq -r '.action' 2>/dev/null
 }

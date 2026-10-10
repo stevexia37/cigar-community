@@ -98,6 +98,30 @@ export function grantAgeGate(res) {
 // ------------------------------------------------------------------ 请求装配
 
 /** 把会话与合规状态挂到 req 上，供路由取用 */
+/**
+ * 年龄门强制校验 —— 这是合规红线，不能只靠前端弹窗。
+ *
+ * 为什么必须服务端强制：前端弹窗只遮挡了「界面」，接口内容照样返回。
+ * 直接 GET /api/cigars 就能拿到全部雪茄资料，等于年龄门不存在。
+ * 对一个 18+ 烟草站点，这是合规问题而非体验问题。
+ *
+ * 放行规则（三类，都是有意的）：
+ *   1. 年龄门自身接口 —— 否则用户永远无法通过
+ *   2. 健康检查 —— 编排系统与预检要能探活
+ *   3. **爬虫放行**（isBot）—— 站点定位是「非交易向知识社区」，
+ *      需要被搜索引擎收录；分享到微信/微博的卡片抓取同理。
+ *      爬虫不是「人」，不构成向未成年人展示；这是 design 里明确的取舍。
+ */
+export function assertAgeGate(req) {
+  if (config.ageGateDisabled) return
+  if (req.ageVerified) return
+  // 已登录用户豁免：要有账号必然已经走过年龄门；
+  // 若在这里拦住，管理员/编辑会连自己的后台都进不去
+  // （年龄门检查发生在业务鉴权之前，这个顺序问题真实发生过）
+  if (req.user) return
+  throw new HttpError(403, '请先确认已满 18 周岁', 'AGE_GATE_REQUIRED')
+}
+
 export function attachAuth(req) {
   req.user = readSession(req)
   req.isBot = isBot(req)

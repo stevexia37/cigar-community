@@ -9,7 +9,7 @@
 |---|---|
 | 内容类型 | 请求与响应均为 `application/json; charset=utf-8` |
 | 鉴权 | HttpOnly Cookie `cc_sid`（同源自动携带，前端 `fetch` 需 `credentials:'include'`） |
-| 年龄门 | HttpOnly Cookie `cc_age`，不影响业务接口，仅记录合规状态 |
+| 年龄门 | HttpOnly Cookie `cc_age`，**服务端强制**。未过门时 `/api/*` 返回 `403 AGE_GATE_REQUIRED`（爬虫、健康检查、`/api/auth/me` 等少数路径豁免） |
 | 分页 | 查询参数 `page`（从 1 开始）、`pageSize`（默认 24，上限 60） |
 | 错误 | 非 2xx 返回 `{ error: string, code: string, details?: any }` |
 | 时间 | ISO8601 UTC，形如 `2026-06-08T10:00:00Z` |
@@ -443,7 +443,27 @@ OG 的 `og:url` / `og:image` 一律输出**绝对地址**（爬虫不解析相�
 
 ### 9.1 年龄门 `POST /api/gate/verify` body `{ "adult": true }`
 
-→ `200 { "ok": true }` 并下发 `cc_age` Cookie（30 天）。`adult:false` → `403 FORBIDDEN`，不下发。
+→ `200 { "ok": true }` 并下发 `cc_age` Cookie（30 天，HMAC 签名）。`adult:false` → `403 FORBIDDEN`，不下发。
+
+**这是服务端强制，不是前端弹窗。** 未持有有效 `cc_age` 时，`/api/*` 一律返回：
+
+```jsonc
+{ "error": "请先确认已满 18 周岁", "code": "AGE_GATE_REQUIRED" }   // HTTP 403
+```
+
+这条规则是合规要求：前端弹窗只遮挡界面，直接 `GET /api/cigars` 就能拿到全部资料，
+等于年龄门不存在。**豁免路径**（有意为之）：
+
+| 路径 | 为什么放行 |
+|---|---|
+| `/api/gate/verify` | 门自身，否则永远无法通过 |
+| `/api/health` | 探活与上线预检 |
+| `/api/auth/me` | 只返回「我是谁 + 是否已过门」，前端靠它决定弹年龄门还是登录框 |
+| **爬虫 UA** | 站点定位是「非交易向知识社区」，需要被搜索引擎收录；分享到微信/微博的卡片抓取同理。爬虫不是「人」，不构成向未成年人展示 |
+| **已登录用户** | 有账号必然已走过年龄门；不豁免会导致管理员进不去自己的后台 |
+
+契约测试通过 `CC_AGE_GATE_DISABLED=1` 关闭该检查（与 `CC_RATE_LIMIT_DISABLED` 同风格），
+但默认测试实例是**开启**的 —— 冒烟脚本会真正走一次年龄门，并断言匿名访问被拒。
 
 ### 9.2 健康检查 `GET /api/health`
 

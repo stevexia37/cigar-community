@@ -100,9 +100,10 @@ async function waitForCdp(url, timeoutMs = 20000) {
 
 /** 用真实接口登录，把返回的会话 Cookie 灌进浏览器 */
 async function loginCookie(username, password) {
+  // 登录在年龄门之内：必须先拿 cc_age，否则拿到 403 而不是会话
   const res = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', cookie: await ageCookieHeader() },
     body: JSON.stringify({ username, password }),
   })
   if (!res.ok) throw new Error(`登录失败：HTTP ${res.status}`)
@@ -135,6 +136,22 @@ const child = spawn(chromePath, [
 ], { stdio: 'ignore' })
 
 let exitCode = 0
+
+/**
+ * 取一份「已通过年龄门」的 Cookie 头。
+ *
+ * 服务端强制年龄门后，/api/* 里只有少数路径豁免，验证脚本打的所有接口
+ * （注册、登录、管理端）都要带上它，否则会拿到 403 而不是被测行为。
+ */
+async function ageCookieHeader() {
+  const res = await fetch(`${BASE}/api/gate/verify`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ adult: true }),
+  })
+  const hit = (res.headers.getSetCookie?.() || []).find((x) => x.startsWith('cc_age='))
+  return hit ? hit.split(';')[0] : ''
+}
 
 async function main() {
   const version = await waitForCdp(`http://127.0.0.1:${PORT}/json/version`)
@@ -242,9 +259,10 @@ async function main() {
   group('普通用户访问管理后台（必须被挡）')
   // 现场注册一个普通用户
   const uname = `vadmin${Date.now().toString().slice(-8)}`
+  // 注册同样在年龄门之内，必须带凭证
   const reg = await fetch(`${BASE}/api/auth/register`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', cookie: await ageCookieHeader() },
     body: JSON.stringify({ username: uname, password: 'VerifyPass12345' }),
   })
   assert(reg.status === 201, `注册测试用户（${uname}）`, `HTTP ${reg.status}`)

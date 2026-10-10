@@ -14,7 +14,7 @@ set -uo pipefail
 
 BASE="${1:-http://127.0.0.1:8787}"
 BODY="$(mktemp -t cc-seo.XXXXXX)"
-PASS=0; FAIL=0
+PASS=0; FAIL=0; WARN=0
 FAILED=()
 
 cleanup() { rm -f "$BODY"; }
@@ -24,6 +24,7 @@ c() { printf '\033[%sm%s\033[0m' "$1" "$2"; }
 ok()   { PASS=$((PASS+1)); printf '  %s %s\n' "$(c 32 '✓')" "$1"; }
 bad()  { FAIL=$((FAIL+1)); FAILED+=("$1"); printf '  %s %s\n      %s\n' "$(c 31 '✗')" "$1" "$2"; }
 grp()  { printf '\n%s\n' "$(c '1;33' "▌$1")"; }
+warn() { WARN=$((WARN+1)); printf '  %s %s\n      %s\n' "$(c 33 '!')" "$1" "$2"; }
 
 # 取页面并抽取某个 meta/title 的内容
 fetch() { curl -sS --max-time 10 "$BASE$1" -o "$BODY" 2>/dev/null; }
@@ -44,6 +45,18 @@ assert_no_raw_tag() { # name value
   if printf '%s' "$2" | grep -q '<'; then bad "$1" "出现未转义的 < ：$2"
   else ok "$1"; fi
 }
+
+# 先过年龄门：脚本里有几处直接查 API（用户主页探测、sitemap 数量比对），
+# 服务端强制年龄门后不带凭证会拿到 403（这个假失败真实发生过）
+AGE_COOKIE="$(curl -sS -D- -o /dev/null --max-time 10 -X POST "$BASE/api/gate/verify" \
+  -H 'content-type: application/json' -d '{"adult":true}' 2>/dev/null \
+  | tr -d '\r' | grep -i '^set-cookie: *cc_age=' | head -1 | sed -n 's/.*cc_age=\([^;]*\).*/\1/p')"
+if [[ -n "$AGE_COOKIE" ]]; then
+  ok "已通过年龄门（后续 API 检查需要凭证）"
+else
+  warn "未取得年龄门凭证" "涉及 /api 的检查可能被 403 拦下"
+fi
+AGE=(-H "cookie: cc_age=$AGE_COOKIE")
 
 printf '%s\n' "$(c '1;36' "雪茄客 SEO 断言 · $BASE")"
 
@@ -89,7 +102,7 @@ done
 # ---------------------------------------------------------------- 用户主页
 grp "用户主页"
 fetch /api/users/1 >/dev/null 2>&1
-UID_OK="$(curl -sS --max-time 5 "$BASE/api/users/1" | jq -r '.user.id // empty' 2>/dev/null)"
+UID_OK="$(curl -sS --max-time 5 "${AGE[@]}" "$BASE/api/users/1" | jq -r '.user.id // empty' 2>/dev/null)"
 if [[ -n "$UID_OK" ]]; then
   fetch "/users/$UID_OK"
   assert_contains "标题含用户名" "$(title_of)" "admin"
@@ -153,7 +166,7 @@ else
 fi
 
 # sitemap 条数应随雪茄数变化，而不是一份写死的清单
-EXPECT_URLS="$(curl -sS --max-time 5 "$BASE/api/meta" | jq -r '.stats.cigars')"
+EXPECT_URLS="$(curl -sS --max-time 5 "${AGE[@]}" "$BASE/api/meta" | jq -r '.stats.cigars')"
 if [[ "${LOCS:-0}" -ge "${EXPECT_URLS:-0}" ]]; then
   ok "sitemap 条数不少于雪茄数（URL $LOCS ≥ 雪茄 $EXPECT_URLS）"
 else
