@@ -108,6 +108,31 @@ export function resolveMeta(pathname, origin = '') {
   return { title: '页面不存在 · 雪茄客', description: SITE.description, robots: 'noindex' }
 }
 
+/**
+ * 动态 robots.txt。
+ *
+ * ⚠️ `Sitemap:` 指令**必须是绝对 URL**（规范如此，搜索引擎不解析相对路径）。
+ * 之前这里是一份静态文件，写的是 `Sitemap: /sitemap.xml` —— 等价于没写。
+ * 域名只能从请求头推断，所以必须由服务端生成。
+ */
+export function buildRobots(origin) {
+  const lines = [
+    'User-agent: *',
+    'Allow: /',
+    '',
+    '# 接口与年龄门后台无需收录',
+    'Disallow: /api/',
+    'Disallow: /admin/',
+    '',
+    '# 用户可写页面对搜索引擎无价值，且内容随时变化',
+    'Disallow: /reviews/new',
+    'Disallow: /login',
+    '',
+  ]
+  if (origin) lines.push(`Sitemap: ${origin}/sitemap.xml`, '')
+  return lines.join('\n')
+}
+
 /** 动态 sitemap：把全部雪茄与用户主页也列进去 */
 export function buildSitemap(origin) {
   const base = origin || ''

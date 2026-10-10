@@ -30,10 +30,11 @@
 | Strapi（`schema.json` 本就是为它写的） | 小时级 | 需要 Node 版本兼容、管理界面定制成本高 | 与「最小可用」目标不符 |
 | **`node:http` + `node:sqlite`** | **分钟级** | 自己写路由/会话/限流（约 300 行） | ✅ 采用 |
 
-代价与收益是明确的：自己维护 `server/lib/http.js` 的路由与会话，换来 **`git clone && npm install && npm start` 在任意 Node 22+ 机器上必然跑通**。
+代价与收益是明确的：自己维护 `server/lib/http.js` 的路由与会话，换来 **`git clone && npm install && npm start` 在任意 Node 22.13+ 机器上必然跑通**。
 对这个项目而言，「能跑起来」比「企业级分层」重要得多。
 
-`node:sqlite` 是 Node 22.5+ 的内置模块，**不需要编译**，这正是避开 `better-sqlite3` 痛点的地方。
+`node:sqlite` 是 Node 22.5+ 的内置模块（**22.13+ 起无需 `--experimental-sqlite` 标志**），
+**不需要编译**，这正是避开 `better-sqlite3` 痛点的地方。
 
 ### 决策 2：不动 MySQL 设计稿，另写一份 SQLite 结构
 

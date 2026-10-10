@@ -129,6 +129,36 @@ assert_contains "sitemap 含雪茄详情链接" "$(grep -o '/cigars/[0-9]*' "$BO
 fetch /robots.txt
 assert_contains "robots.txt 可达" "$(cat "$BODY")" "Sitemap"
 assert_contains "robots 禁止抓取接口" "$(cat "$BODY")" "Disallow: /api/"
+assert_contains "robots 禁止抓取管理后台" "$(cat "$BODY")" "Disallow: /admin/"
+# Sitemap 指令必须是绝对 URL —— 规范如此，搜索引擎不解析相对路径。
+# 这里曾是一份静态文件写成 `Sitemap: /sitemap.xml`，等于没写（已改为服务端生成）。
+assert_contains "robots 的 Sitemap 是绝对地址" "$(cat "$BODY")" "Sitemap: http"
+# 反向验证：静态文件不应再存在，否则会静默顶替动态版本
+if [[ ! -f web/public/sitemap.xml && ! -f web/public/robots.txt ]]; then
+  ok "未残留静态 sitemap/robots（避免静默顶替动态版本）"
+else
+  bad "静态文件残留" "web/public 下仍有 sitemap.xml 或 robots.txt"
+fi
+
+# 换域名后绝对地址必须跟着变（否则线上会写死成 127.0.0.1）
+FAKE_HOST="cigar.example.com"
+HOSTED_ROBOTS="$(curl -sS --max-time 5 -H "Host: $FAKE_HOST" -H 'X-Forwarded-Proto: https' "$BASE/robots.txt" 2>/dev/null)"
+assert_contains "robots 的 Sitemap 随域名变化" "$HOSTED_ROBOTS" "https://$FAKE_HOST/sitemap.xml"
+HOSTED_MAP="$(curl -sS --max-time 5 -H "Host: $FAKE_HOST" -H 'X-Forwarded-Proto: https' "$BASE/sitemap.xml" 2>/dev/null)"
+assert_contains "sitemap 的 loc 随域名变化" "$HOSTED_MAP" "https://$FAKE_HOST/"
+if printf '%s' "$HOSTED_MAP" | grep -q '<loc>/'; then
+  bad "sitemap 出现相对地址" "<loc>/ 形式会让爬虫无法定位"
+else
+  ok "sitemap 全部为绝对地址"
+fi
+
+# sitemap 条数应随雪茄数变化，而不是一份写死的清单
+EXPECT_URLS="$(curl -sS --max-time 5 "$BASE/api/meta" | jq -r '.stats.cigars')"
+if [[ "${LOCS:-0}" -ge "${EXPECT_URLS:-0}" ]]; then
+  ok "sitemap 条数不少于雪茄数（URL $LOCS ≥ 雪茄 $EXPECT_URLS）"
+else
+  bad "sitemap 覆盖不足" "URL $LOCS < 雪茄 $EXPECT_URLS"
+fi
 
 # ---------------------------------------------------------------- 转义安全
 grp "HTML 转义（防止 meta 注入）"

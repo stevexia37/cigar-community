@@ -6,7 +6,7 @@
 
 ## 环境要求
 
-- **Node ≥ 22.5**（`node:sqlite` 是内置模块，低于此版本无法启动）
+- **Node ≥ 22.13**（`node:sqlite` 是内置模块；22.5–22.12 需 `--experimental-sqlite`，故下限取 22.13）
 - 无需 MySQL、无需 Docker、无需全局工具
 - 测试需要 `jq`（`brew install jq`）
 

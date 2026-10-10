@@ -32,7 +32,9 @@ color() { printf '\033[%sm%s\033[0m' "$1" "$2"; }
 step() { printf '\n%s %s\n' "$(color '1;36' '▶')" "$1"; }
 
 step "单元测试（规则引擎 / 合规熔断）"
-if ! (cd "$ROOT" && node --test scripts/ 2>&1 | tail -12); then
+# 注意用 glob（而不是目录）：Node 22 的 --test 会把目录当成单个测试文件而报
+# MODULE_NOT_FOUND，目录递归是 Node 26 才支持的。glob 在 22/26 上实测都可用。
+if ! (cd "$ROOT" && node --test 'scripts/*.test.mjs' 2>&1 | tail -12); then
   printf '%s\n' "$(color '31' '单元测试失败，终止')"
   exit 1
 fi

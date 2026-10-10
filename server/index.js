@@ -1,3 +1,34 @@
+/**
+ * 最低 Node 版本校验。
+ *
+ * 为什么必须在 import 之前做：`import { DatabaseSync } from 'node:sqlite'` 是静态
+ * 导入，会在任何业务代码之前执行。若版本过低，用户看到的是
+ * `Cannot find module 'node:sqlite'`，完全看不出「应该升级 Node」。
+ *
+ * 为什么是 22.13.0：node:sqlite 自 v22.5.0 引入，但**到 v22.13.0 才去掉
+ * `--experimental-sqlite` 标志**；22.5–22.12 上不加标志直接 import 会失败。
+ * 这个边界实测过（22.23.3 通过、22.5 不加标志不可用）。
+ */
+const MIN_NODE = [22, 13, 0]
+const current = process.versions.node.split('.').map(Number)
+const tooOld =
+  current[0] < MIN_NODE[0] ||
+  (current[0] === MIN_NODE[0] && current[1] < MIN_NODE[1])
+
+if (tooOld) {
+  const need = MIN_NODE.join('.')
+  console.error(
+    `\n  ✗ 需要 Node ${need} 或更高版本（当前 ${process.versions.node}）\n\n` +
+    `    原因：本项目用 Node 内置的 node:sqlite 做数据库，\n` +
+    `    它从 Node ${need} 起才无需 --experimental-sqlite 标志即可直接使用。\n\n` +
+    `    升级方式：\n` +
+    `      · nvm:  nvm install ${MIN_NODE[0]} && nvm use ${MIN_NODE[0]}\n` +
+    `      · 官网: https://nodejs.org/\n` +
+    `      · Docker: 本项目自带 Dockerfile，可直接 docker compose up -d\n`,
+  )
+  process.exit(1)
+}
+
 import { createServer } from 'node:http'
 import { existsSync, readFileSync, createReadStream } from 'node:fs'
 import { config, isProd, assertProductionSafety } from './config.js'
@@ -7,7 +38,7 @@ import {
   Router, readBody, sendError, createRateLimiter, clientIp, HttpError, notFound,
 } from './lib/http.js'
 import { createStaticHandler } from './lib/static.js'
-import { resolveMeta, buildSitemap } from './lib/seo.js'
+import { resolveMeta, buildSitemap, buildRobots } from './lib/seo.js'
 import { readImage } from './lib/storage.js'
 import { attachAuth, purgeExpiredSessions } from './middleware/auth.js'
 import { metaRouter } from './api/meta.js'
@@ -120,20 +151,26 @@ async function handle(req, res) {
     return
   }
 
-  // 动态 sitemap：静态那份只列了固定入口，这里把全部雪茄也包含进去
-  if (pathname === '/sitemap.xml') {
+  // ---------- 爬虫设施：容器域名只能从请求头推断，因此必须服务端生成 ----------
+  // 这两条路径都**不使用静态文件**：静态版会把域名写死或写成相对路径，
+  // 而 OG/sitemap 的地址必须是绝对 URL（爬虫不解析相对路径）。
+  if (pathname === '/sitemap.xml' || pathname === '/robots.txt') {
     const origin = (() => {
       const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim()
         || (req.socket.encrypted ? 'https' : 'http')
       const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim()
       return host ? `${proto}://${host}` : ''
     })()
-    const xml = buildSitemap(origin)
-    const body = Buffer.from(xml, 'utf8')
+    const isSitemap = pathname === '/sitemap.xml'
+    const text = isSitemap ? buildSitemap(origin) : buildRobots(origin)
+    const body = Buffer.from(text, 'utf8')
     res.writeHead(200, {
-      'content-type': 'application/xml; charset=utf-8',
+      'content-type': isSitemap
+        ? 'application/xml; charset=utf-8'
+        : 'text/plain; charset=utf-8',
       'content-length': body.length,
-      'cache-control': 'public, max-age=3600',
+      // robots/sitemap 变更不频繁，但也不能长缓存：换域名后要能及时生效
+      'cache-control': 'public, max-age=600',
     })
     res.end(body)
     return

@@ -232,7 +232,8 @@ tail -50 logs/server.log
 | 症状 | 原因 | 处理 |
 |---|---|---|
 | 启动即退出，日志说「配置错误」 | `CC_ENV=production` 但密钥/口令仍是默认值 | 按提示改 `.env` |
-| `Cannot find module 'node:sqlite'` | Node 版本 < 22.5 | 升级 Node |
+| `Cannot find module 'node:sqlite'` | Node 版本 < 22.5 | 升级 Node 到 22.13+ |
+| 启动即提示「需要 Node 22.13 或更高版本」 | Node 22.5–22.12（缺少 `--experimental-sqlite` 的替代） | 升级 Node；这是本项目主动给的可读报错，不是崩溃 |
 | 首页 404 或空白 | 前端未构建 | `npm run build` |
 | 首页正常但接口全 404 | 请求打到了 Vite 开发服务器（5173）而非后端 | 生产访问 8787 或反代地址 |
 | 登录后立刻掉线 | 生产环境用了 `Secure` Cookie 但走 HTTP | 上 HTTPS，或临时 `CC_ENV=development` |

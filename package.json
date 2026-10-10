@@ -6,7 +6,7 @@
   "description": "雪茄客社区 · 非烟草交易向的雪茄知识库与品吸交流平台",
   "license": "MIT",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "setup": "npm install",
@@ -16,7 +16,7 @@
     "seed": "node scripts/seed.mjs",
     "seed:reset": "node scripts/seed.mjs --reset",
     "build": "npm --prefix web run build",
-    "test": "node --test scripts/",
+    "test": "node --test 'scripts/*.test.mjs'",
     "test:e2e": "bash scripts/test-e2e.sh",
     "smoke": "bash scripts/api-smoke.sh",
     "preflight": "bash scripts/preflight.sh",

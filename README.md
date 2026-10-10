@@ -56,12 +56,12 @@ npm start            # 起服务 → http://127.0.0.1:8787
 **前端**：Vue 3 + Vite + Tailwind CSS + vue-router。沿用项目原有的 Vue 与 Tailwind 色板（`cigar-*` token），
 不引入 Pinia —— 全站只有一个共享状态（会话），`reactive` 足够，少一个依赖。
 
-**后端**：**零依赖**。`node:http` 手写薄路由 + `node:sqlite`（Node ≥22.5 内置）。
+**后端**：**零依赖**。`node:http` 手写薄路由 + `node:sqlite`（Node ≥22.13 内置）。
 
 > 为什么不直接上 Nest/Express/Strapi：这个项目此前**完全没有后端**，`database/schema.sql` 是纯设计稿。
 > 上重框架会把「第一次能跑起来」的时间从分钟拉长到天，还会引入 native module 编译风险
 > （`better-sqlite3`、`bcrypt` 在换机器时最容易炸）。零依赖的代价是自己写了约 300 行 HTTP 原语，
-> 换来的是 `git clone && npm install && npm start` 在任何装了 Node 22+ 的机器上都能跑通。
+> 换来的是 `git clone && npm install && npm start` 在任何装了 Node 22.13+ 的机器上都能跑通。
 
 **数据库**：运行库用 SQLite（`database/schema.sqlite.sql`），生产设计稿是 MySQL（`database/schema.sql`）。
 两者字段一一对应，差异与迁移路径见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
