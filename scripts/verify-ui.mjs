@@ -279,16 +279,28 @@ async function main() {
   // 服务端强制年龄门后，首屏请求必然被 403 拦一次；若视图只在 onMounted 加载，
   // 用户确认年龄后界面会永远停在「请先确认已满 18 周岁」——这个回归真实发生过。
   await goto('/', { gated: true })
-  const blockedText = await text()
-  assert(/请先确认已满/.test(blockedText), '未过门时首页给出年龄门提示（数据请求被 403）', blockedText.slice(0, 160))
+  // 未过门时用户看到的应当是年龄门弹窗本身。
+  // 注意：api/client.js 对 AGE_GATE_REQUIRED 会静默自动重试（等用户确认后重发），
+  // 所以此时页面上**不会**出现「请先确认已满」的错误文案 —— 那是内部实现细节，
+  // 断言它就会锁死实现（这条断言曾因为重试机制上线而失效）。
+  assert(await evalJs('return !!document.querySelector(\'[role="dialog"]\')'),
+    '未过门时弹出年龄门（内容请求在静默重试）')
   await evalJs(`
     const b = [...document.querySelectorAll('[role="dialog"] button')].find(x => x.textContent.includes('我已年满'))
     if (b) b.click()
     return !!b
   `)
-  await sleep(3000)
-  const recoveredText = await text()
-  assert(!/请先确认已满/.test(recoveredText), '确认年龄后错误提示消失')
+  // 等自动重试把首屏数据补齐（重试间隔 1.5s × 最多 2 次）
+  const recoveredText = await (async () => {
+    const deadline = Date.now() + 8000
+    while (Date.now() < deadline) {
+      const t = await text()
+      if (/在库雪茄|收录品牌/.test(t)) return t
+      await sleep(400)
+    }
+    return text()
+  })()
+  assert(!/请先确认已满/.test(recoveredText), '确认年龄后不再提示年龄门')
   assert(/在库雪茄|收录品牌/.test(recoveredText), '确认年龄后首页自动重新加载出真实统计', recoveredText.slice(0, 160))
 
   await goto('/')

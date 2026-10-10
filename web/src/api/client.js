@@ -33,6 +33,23 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 命中年龄门时的自动重试。
+ *
+ * 服务端强制年龄门后，未过门时 /api/* 返回 403 AGE_GATE_REQUIRED。
+ * 页面首屏的请求必然撞上它一次（弹窗还没确认），而各视图只在 onMounted 加载 ——
+ * 若不重试，用户确认年龄后界面会永远停在错误提示上。
+ *
+ * 为什么放在客户端层而不是逐视图处理：这是**每个依赖 API 的视图都会遇到**的
+ * 共性问题。起初只在首页加了重试，结果 /cigars、/reviews、/cigars/:id、工具页
+ * 全部仍卡在错误状态 —— 打补丁不如修根因。
+ *
+ * 等待时长取「用户看一眼弹窗并点确认」的典型耗时；确认成功后服务端会下发
+ * cc_age，重试即通过。若用户迟迟不确认，重试仍失败，视图正常显示错误提示。
+ */
+const AGE_GATE_RETRY_DELAY_MS = 1500
+const AGE_GATE_MAX_RETRY = 2
+
 async function request(path, { method = 'GET', body, query, signal } = {}) {
   let url = path.startsWith('http') ? path : BASE + path
   if (query && typeof query === 'object') {
@@ -61,26 +78,42 @@ async function request(path, { method = 'GET', body, query, signal } = {}) {
     init.body = JSON.stringify(body)
   }
 
-  let res
-  try {
-    res = await fetch(url, init)
-  } catch (err) {
-    if (err.name === 'AbortError') throw err
-    throw new ApiError(0, { error: '网络连接失败，请检查后端服务是否已启动', code: 'NETWORK_ERROR' })
+  const attempt = async () => {
+    let res
+    try {
+      res = await fetch(url, init)
+    } catch (err) {
+      if (err.name === 'AbortError') throw err
+      throw new ApiError(0, { error: '网络连接失败，请检查后端服务是否已启动', code: 'NETWORK_ERROR' })
+    }
+
+    const text = await res.text()
+    let payload = null
+    if (text) {
+      try {
+        payload = JSON.parse(text)
+      } catch {
+        payload = { error: text.slice(0, 200), code: 'INVALID_RESPONSE' }
+      }
+    }
+
+    if (!res.ok) throw new ApiError(res.status, payload)
+    return payload
   }
 
-  const text = await res.text()
-  let payload = null
-  if (text) {
+  for (let i = 0; ; i++) {
     try {
-      payload = JSON.parse(text)
-    } catch {
-      payload = { error: text.slice(0, 200), code: 'INVALID_RESPONSE' }
+      return await attempt()
+    } catch (err) {
+      const ageBlocked = err instanceof ApiError && err.code === 'AGE_GATE_REQUIRED'
+      // 只在「等用户确认年龄」这件事上重试，其它错误立即抛出（包括内容违规）
+      if (!ageBlocked || i >= AGE_GATE_MAX_RETRY || signal?.aborted) {
+        if (ageBlocked) err.humanMessage = '请先确认已满 18 周岁'
+        throw err
+      }
+      await new Promise((r) => setTimeout(r, AGE_GATE_RETRY_DELAY_MS))
     }
   }
-
-  if (!res.ok) throw new ApiError(res.status, payload)
-  return payload
 }
 
 const post = (path, body, opts) => request(path, { ...opts, method: 'POST', body })
