@@ -50,6 +50,9 @@
           <h3 v-if="item.title" class="mb-1 text-sm font-medium text-cigar-cream">{{ item.title }}</h3>
           <p class="whitespace-pre-wrap text-sm leading-relaxed text-cigar-cream/90">{{ item.contentFull || '（无正文）' }}</p>
 
+          <!-- 运营必须看到图才能判断（涉烟广告图/二维码是审核重点） -->
+          <ReviewImages :images="item.images || []" :max-thumb="6" />
+
           <!-- 评分概览 -->
           <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-cigar-mute">
             <span>总体 <strong class="text-cigar-gold">{{ item.overallRating }}</strong>/10</span>
@@ -117,6 +120,7 @@
 import { ref, onMounted, inject, defineComponent, h } from 'vue'
 import api from '@/api/client.js'
 import EmptyState from '@/components/EmptyState.vue'
+import ReviewImages from '@/components/ReviewImages.vue'
 
 /** 复用性很低的极简分页条，就近定义避免再拆一个文件 */
 const Pager = defineComponent({

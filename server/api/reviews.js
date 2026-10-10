@@ -3,7 +3,8 @@ import { query, queryOne, run, transaction, nowIso } from '../db/index.js'
 import { parsePagination, parseId } from '../lib/query.js'
 import { scan } from '../lib/sensitive.js'
 import { requireAuth } from '../middleware/auth.js'
-import { shapeReview } from './shape.js'
+import { shapeReview, imagesByReview } from './shape.js'
+import { saveImage } from '../lib/storage.js'
 
 export const reviewRouter = new Router()
 
@@ -122,8 +123,9 @@ reviewRouter.get('/reviews', async (req, res) => {
   }
 
   const totalPages = Math.ceil(total / pageSize)
+  const imageMap = imagesByReview(rows.map((r) => r.id))
   sendJson(res, 200, {
-    items: rows.map((r) => shapeReview(r, req.user?.id ?? null, helpfulSet.has(r.id))),
+    items: rows.map((r) => shapeReview(r, req.user?.id ?? null, helpfulSet.has(r.id), imageMap.get(r.id) || [])),
     total,
     page: Math.min(page, Math.max(1, totalPages)),
     pageSize,
@@ -160,6 +162,27 @@ reviewRouter.post('/reviews', async (req, res) => {
     restTimeDays: optionalInt(body.restTimeDays, '静养天数', { min: 0, max: 20000 }),
   }
 
+  // 配图：最多 6 张。data: 开头的是新上传（需落盘），/uploads/ 开头的是已存 URL（复用）
+  const rawImages = Array.isArray(body.images) ? body.images.slice(0, 6) : []
+  const images = []
+  for (const item of rawImages) {
+    // 允许直接传字符串，也允许传 { data, description }
+    const source = typeof item === 'string' ? item : (item?.data ?? item?.url ?? null)
+    const description = typeof item === 'object' && item ? (item.description ?? null) : null
+    if (typeof source !== 'string' || !source) continue
+
+    if (source.startsWith('data:')) {
+      // 新上传：校验并落盘。格式非法会抛 400/413，让用户明确知道哪张图有问题
+      const saved = saveImage(source)
+      images.push({ url: saved.url, description: description ? String(description).slice(0, 200) : null })
+    } else if (source.startsWith('/uploads/')) {
+      // 复用已上传的图（例如用户先传后改文，避免重复落盘）
+      const filename = source.slice('/uploads/'.length)
+      const { readImage } = await import('../lib/storage.js')
+      if (readImage(filename)) images.push({ url: source, description: description ? String(description).slice(0, 200) : null })
+    }
+  }
+
   // 合规熔断：标题 + 正文一起扫，避免把违规内容拆到两个字段绕过
   const sensitivity = scan(`${payload.title || ''}\n${payload.content || ''}\n${payload.pairing || ''}`)
 
@@ -171,7 +194,7 @@ reviewRouter.post('/reviews', async (req, res) => {
   const status = sensitivity.action === 'queued' ? -1 : 1
   const ts = nowIso()
 
-  const id = transaction(() => {
+  const id = transaction((conn) => {
     const res2 = run(
       `INSERT INTO reviews (
          user_id, cigar_id, pre_score, mid_score, post_score, burn_evenness, draw_resistance,
@@ -184,26 +207,32 @@ reviewRouter.post('/reviews', async (req, res) => {
         status, ts, ts],
     )
     const newId = Number(res2.lastInsertRowid)
+    const insImage = conn.prepare(
+      'INSERT INTO review_images (review_id, image_url, description, sort_order) VALUES (?,?,?,?)',
+    )
+    images.forEach((img, idx) => insImage.run(newId, img.url, img.description, idx))
     logSensitivity(user.id, 'review', newId, sensitivity, `${payload.title || ''} ${payload.content || ''}`)
     if (status === 1) recomputeCigarStats(cigarId)
     return newId
   })
 
   const row = queryOne(`${SELECT_REVIEW} WHERE r.id = ?`, [id])
+  // 回带刚写入的配图：否则前端拿到 images: [] ，无法立刻预览用户刚上传的图
+  const createdImages = imagesByReview([id]).get(id) || []
 
   if (status === -1) {
     // 命中审核词：内容已入库但不公开，返回 202
     sendJson(res, 202, {
       // 契约要求：非 2xx… 但 202 是成功语义，仍带上 code 以便客户端统一判断
       code: 'CONTENT_QUEUED',
-      review: shapeReview(row, user.id, false),
+      review: shapeReview(row, user.id, false, createdImages),
       sensitivity: { action: sensitivity.action, matched: sensitivity.matched, message: sensitivity.message },
     })
     return
   }
 
   sendJson(res, 201, {
-    review: shapeReview(row, user.id, false),
+    review: shapeReview(row, user.id, false, createdImages),
     sensitivity: { action: sensitivity.action, matched: sensitivity.matched, message: sensitivity.message },
   })
 })

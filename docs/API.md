@@ -352,6 +352,41 @@
 用户名规则：3-24 位，字母/数字/下划线/中文。口令：≥8 位且非纯数字。
 注册重复 → `409 CONFLICT`。注册/登录限流：每 IP 每分钟 10 次 → `429 TOO_MANY_REQUESTS`。
 
+## 8.4 图片上传
+
+图片走 **JSON + base64**，不用 `multipart/form-data`：
+省掉一个解析依赖，也避开 multipart 这类历史漏洞高发区。
+
+前端在提交前用 canvas 把图压到最长边 1600px / JPEG q0.82（通常 200–400KB），
+因此服务端不做缩放（无 sharp / 无原生依赖）。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/api/uploads/limits` | 返回字节上限、允许格式、前端压缩目标参数（前端不硬编码） |
+| POST | `/api/uploads` | body `{ data }`，`data` 为 `data:image/*;base64,...` 或裸 base64。**需登录** |
+
+`POST /api/uploads` → `201`
+
+```jsonc
+{
+  "image": {
+    "url": "/uploads/c8ac852588eff8b5.png",
+    "bytes": 192, "mime": "image/png", "width": 240, "height": 160
+  },
+  "uploadedBy": 5
+}
+```
+
+**校验与安全**：
+- 按**字节魔数**判断真实类型，不信任扩展名与声明的 MIME（文本冒充 PNG 返回 `400`）
+- 单张上限 4MB（GIF 8MB），超限 `413 PAYLOAD_TOO_LARGE`
+- **内容寻址**：文件名是内容 sha256 前 16 位，同图重复上传复用同一地址，天然去重
+- 静态路径 `/uploads/<hash>.<ext>` 长缓存（immutable）；非白名单文件名一律 404
+
+**配图写入笔记**：`POST /api/reviews` 的 `images` 字段接受最多 6 项，
+每项可以是 `data:...`（新上传，服务端落盘）或 `/uploads/...`（复用已上传的图），
+也可以是 `{ url|data, description }`。响应与查询接口都会回带 `review.images`。
+
 ## 8.5 管理端 `/api/admin/*`
 
 **权限**：全部要求登录，且角色为 `admin` 或 `editor`（`/admin/users` 及其写操作仅 `admin`）。

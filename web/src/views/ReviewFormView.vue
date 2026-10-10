@@ -111,6 +111,20 @@
           <ScoreInput v-model="form.postScore" label="后段" />
           <ScoreInput v-model="form.burnEvenness" label="燃烧均匀度" />
           <ScoreInput v-model="form.drawResistance" label="吸阻" />
+
+          <!-- 配图：雪茄笔记的价值一半在图 -->
+          <div class="mt-6">
+            <ImageUploader
+              :images="uploader.images.value"
+              label="配图"
+              hint="可选，最多 6 张"
+              tip="图片只用于展示养护环境与茄身细节。请勿上传任何联系方式、二维码或交易信息截图。"
+              :notice="uploadNotice"
+              :max-count="uploader.maxCount"
+              @pick="onPickImages"
+              @remove="uploader.remove"
+            />
+          </div>
         </div>
 
         <!-- 品吸条件 -->
@@ -166,6 +180,8 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '@/api/client.js'
 import { useAuth } from '@/composables/useAuth.js'
 import ScoreInput from '@/components/ScoreInput.vue'
+import ImageUploader from '@/components/ImageUploader.vue'
+import { useImageUpload } from '@/composables/useImageUpload.js'
 
 const auth = useAuth()
 const route = useRoute()
@@ -177,6 +193,15 @@ const searchResults = ref([])
 const searching = ref(false)
 const searchError = ref('')
 let searchTimer = null
+
+const uploader = useImageUpload({ maxCount: 6 })
+const uploadNotice = ref('')
+
+async function onPickImages(files) {
+  uploadNotice.value = ''
+  const notice = await uploader.addFiles(files)
+  if (notice) uploadNotice.value = notice
+}
 
 const form = reactive({
   title: '',
@@ -311,6 +336,9 @@ function scheduleCheck() {
 watch(() => form.content, scheduleCheck)
 
 function buildPayload() {
+  // 图片随创建请求一起提交（后端同时接受 data: 与 /uploads/ 两种形式），省一次往返
+  const images = uploader.toPayload()
+
   const payload = {
     cigarId: selectedCigar.value.id,
     overallRating: Number(form.overallRating),
@@ -326,6 +354,7 @@ function buildPayload() {
     const v = num(form[key])
     if (v !== undefined && Number.isFinite(v)) payload[key] = v
   }
+  if (images.length) payload.images = images
   return payload
 }
 
@@ -337,6 +366,17 @@ function isQueuedPayload(payload) {
 }
 
 async function submit() {
+  // 图片仍在压缩时不能提交：否则会静默丢掉用户刚选的图
+  if (uploader.hasUploading()) {
+    uploadNotice.value = '图片还在处理中，请稍候再提交'
+    return
+  }
+  const broken = uploader.images.value.find((i) => i.error)
+  if (broken) {
+    uploadNotice.value = `有一张图片处理失败（${broken.error}），请移除后重试`
+    return
+  }
+
   if (submitting.value) return
   submitError.value = ''
   rejectedWords.value = []
@@ -354,6 +394,7 @@ async function submit() {
   submitting.value = true
   try {
     const res = await api.createReview(buildPayload())
+    uploader.clear()
     if (isQueuedPayload(res)) {
       queued.value = true
       return

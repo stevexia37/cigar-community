@@ -114,6 +114,10 @@ export const api = {
   createReview: (payload) => post('/reviews', payload),
   toggleHelpful: (id) => post(`/reviews/${id}/helpful`),
 
+  // ---- 图片 ----
+  uploadImage: (data) => post('/uploads', { data }),
+  uploadLimits: () => get('/uploads/limits'),
+
   // ---- 投稿 ----
   submitCigar: (payload) => post('/submissions', payload),
   mySubmissions: () => get('/submissions/mine'),

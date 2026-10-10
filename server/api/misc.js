@@ -2,7 +2,8 @@ import { readFileSync, existsSync } from 'node:fs'
 import { Router, sendJson, HttpError, notFound } from '../lib/http.js'
 import { queryOne } from '../db/index.js'
 import { config } from '../config.js'
-import { grantAgeGate } from '../middleware/auth.js'
+import { grantAgeGate, requireAuth } from '../middleware/auth.js'
+import { saveImage, readImage, IMAGE_LIMITS } from '../lib/storage.js'
 
 export const miscRouter = new Router()
 
@@ -54,4 +55,40 @@ miscRouter.get('/content/:slug', async (req, res) => {
   // 只取 <body> 内部，避免把原文档的 <head>/<style> 塞进页面
   const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
   sendJson(res, 200, { title: meta.title, html: body ? body[1] : html })
+})
+
+// ---------------------------------------------------------------- 图片上传
+/**
+ * 用 JSON + base64 而不是 multipart：省掉一个依赖，也避开 multipart 解析这类
+ * 历史漏洞高发区。前端在上传前已用 canvas 压到最长边 1600px。
+ */
+miscRouter.post('/uploads', async (req, res) => {
+  const user = requireAuth(req)
+
+  const body = req.body || {}
+  const data = body.data ?? body.image ?? null
+  if (!data) throw new HttpError(400, '请求体需包含 data 字段（base64 或 dataURL）', 'BAD_REQUEST')
+
+  const saved = saveImage(data)
+
+  const payload = {
+    url: saved.url,
+    bytes: saved.bytes,
+    mime: saved.mime,
+    width: saved.width,
+    height: saved.height,
+  }
+  sendJson(res, 201, { image: payload, uploadedBy: user.id })
+})
+
+/** 告诉前端当前的图片限制，避免前端硬编码上限 */
+miscRouter.get('/uploads/limits', async (req, res) => {
+  sendJson(res, 200, {
+    maxBytes: IMAGE_LIMITS.maxBytes,
+    maxBytesGif: IMAGE_LIMITS.maxBytesGif,
+    allowed: IMAGE_LIMITS.allowed,
+    // 前端压缩目标，服务端与前端保持一致
+    targetMaxEdge: 1600,
+    targetQuality: 0.82,
+  })
 })

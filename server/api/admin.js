@@ -11,7 +11,7 @@ import { Router, sendJson, badRequest, notFound, HttpError } from '../lib/http.j
 import { query, queryOne, run, transaction, nowIso, count } from '../db/index.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import { parsePagination, parseId } from '../lib/query.js'
-import { shapeReview } from './shape.js'
+import { shapeReview, imagesByReview } from './shape.js'
 import { detectVitolaFamily, normalizeBrandName } from '../seed.js'
 
 export const adminRouter = new Router()
@@ -121,9 +121,10 @@ adminRouter.get('/admin/reviews', async (req, res) => {
   )
   const totalPages = Math.ceil(total / pageSize)
 
+  const adminImageMap = imagesByReview(rows.map((r) => r.id))
   sendJson(res, 200, {
     items: rows.map((r) => ({
-      ...shapeReview(r, req.user.id, false),
+      ...shapeReview(r, req.user.id, false, adminImageMap.get(r.id) || []),
       // 审核需要看完整正文与命中记录，列表接口的截断规则在这里不适用
       contentFull: r.content || '',
     })),

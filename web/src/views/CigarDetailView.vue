@@ -186,6 +186,8 @@
               <span v-if="r.pairing" class="rounded-full border border-cigar-light/70 px-2.5 py-0.5">🥃 {{ r.pairing }}</span>
             </div>
 
+            <ReviewImages :images="r.images || []" :max-thumb="6" />
+
             <div class="mt-3 border-t border-cigar-light/40 pt-3">
               <button
                 type="button"

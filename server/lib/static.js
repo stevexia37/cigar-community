@@ -125,7 +125,11 @@ function sendFile(req, res, file, { status = 200, pathname = '' } = {}) {
  */
 export function createStaticHandler(root) {
   const indexFile = join(root, 'index.html')
-  const hasIndex = existsSync(indexFile)
+  // ⚠️ 不要在这里把 index.html「是否存在」缓存成常量。
+  // 前端重新构建会替换 index.html 与其引用的 hash 资源名，而本进程若缓存了旧的
+  // index.html（或旧的判断结果），浏览器就会去请求已不存在的旧资源 → 全站空白。
+  // 这个坑在开发期踩过不止一次，因此改为每次请求现判。
+  const hasIndex = () => existsSync(indexFile)
 
   return function handleStatic(req, res, pathname) {
     if (!existsSync(root)) return false
@@ -152,7 +156,7 @@ export function createStaticHandler(root) {
     }
 
     // SPA 回退：只要不是带扩展名的静态请求，就交给前端路由
-    if (hasIndex && !extname(pathname)) {
+    if (hasIndex() && !extname(pathname)) {
       sendFile(req, res, indexFile, { status: 200, pathname: '/index.html' })
       return true
     }

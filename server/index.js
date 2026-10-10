@@ -1,5 +1,5 @@
 import { createServer } from 'node:http'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, createReadStream } from 'node:fs'
 import { config, isProd, assertProductionSafety } from './config.js'
 import { queryOne, closeDb } from './db/index.js'
 import { bootstrap, stampVersion } from './db/bootstrap.js'
@@ -7,6 +7,7 @@ import {
   Router, readBody, sendError, createRateLimiter, clientIp, HttpError, notFound,
 } from './lib/http.js'
 import { createStaticHandler } from './lib/static.js'
+import { readImage } from './lib/storage.js'
 import { attachAuth, purgeExpiredSessions } from './middleware/auth.js'
 import { metaRouter } from './api/meta.js'
 import { cigarRouter } from './api/cigars.js'
@@ -18,6 +19,12 @@ import { miscRouter } from './api/misc.js'
 import { adminRouter } from './api/admin.js'
 
 const VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version
+
+/** /uploads 下的扩展名 → MIME（文件名由 storage.js 生成，已是白名单） */
+function MIME_BY_EXT(name) {
+  const ext = String(name).slice(String(name).lastIndexOf('.') + 1).toLowerCase()
+  return { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' }[ext] || 'application/octet-stream'
+}
 
 assertProductionSafety()
 
@@ -109,6 +116,21 @@ async function handle(req, res) {
     if (!matched) throw notFound(`接口不存在：${req.method} ${pathname}`)
     req.params = matched.params
     await matched.handler(req, res)
+    return
+  }
+
+  // 上传图片：单独一段，带长缓存（文件名是内容哈希，内容永不变）
+  if (pathname.startsWith('/uploads/')) {
+    const filename = pathname.slice('/uploads/'.length)
+    const file = readImage(filename)
+    if (!file) throw notFound('图片不存在')
+    res.writeHead(200, {
+      'content-type': MIME_BY_EXT(filename),
+      'content-length': file.size,
+      'cache-control': 'public, max-age=31536000, immutable',
+      'x-content-type-options': 'nosniff',
+    })
+    createReadStream(file.path).pipe(res)
     return
   }
 

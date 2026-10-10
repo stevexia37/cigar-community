@@ -182,7 +182,25 @@ export function countCigars(filters = {}) {
   return row?.n ?? 0
 }
 
-export function shapeReview(row, currentUserId = null, helpfulByMe = false) {
+/** 批量取笔记配图，避免列表页 N+1 */
+export function imagesByReview(reviewIds) {
+  if (!reviewIds.length) return new Map()
+  const placeholders = reviewIds.map(() => '?').join(',')
+  const rows = query(
+    `SELECT review_id, image_url, description, sort_order
+     FROM review_images WHERE review_id IN (${placeholders})
+     ORDER BY review_id, sort_order, id`,
+    reviewIds,
+  )
+  const map = new Map()
+  for (const r of rows) {
+    if (!map.has(r.review_id)) map.set(r.review_id, [])
+    map.get(r.review_id).push({ url: r.image_url, description: r.description || null })
+  }
+  return map
+}
+
+export function shapeReview(row, currentUserId = null, helpfulByMe = false, images = []) {
   return {
     id: row.id,
     cigarId: row.cigar_id,
@@ -202,6 +220,7 @@ export function shapeReview(row, currentUserId = null, helpfulByMe = false) {
     pairing: row.pairing,
     humidityAtSmoke: row.humidity_at_smoke,
     restTimeDays: row.rest_time_days,
+    images: Array.isArray(images) ? images : [],
     helpfulCount: row.helpful_count ?? 0,
     helpfulByMe: !!helpfulByMe,
     isMine: currentUserId != null && row.user_id === currentUserId,

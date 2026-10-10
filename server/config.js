@@ -60,6 +60,13 @@ export const config = {
     sensitiveWords: join(ROOT, 'config', 'sensitive-words.json'),
     rules: join(ROOT, 'server', 'rules'),
     webDist: join(ROOT, 'web', 'dist'),
+    // 用户上传的图片。放在仓库根的 uploads/ 而不是 web/dist/ 内 ——
+    // dist 是构建产物（会被 rm -rf 重建），丢图是不可接受的。
+    // 部署时用 CC_UPLOAD_DIR 指向持久卷（Docker 下挂 /data/uploads）。
+    uploads: (() => {
+      const p = env('CC_UPLOAD_DIR', join('uploads'))
+      return isAbsolute(p) ? p : join(ROOT, p)
+    })(),
     logs: join(ROOT, 'logs'),
   },
 }

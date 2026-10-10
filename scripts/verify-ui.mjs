@@ -17,7 +17,8 @@
  * 退出码：0 = 全部通过
  */
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { deflateSync, crc32 } from 'node:zlib'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -25,6 +26,46 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const BASE = process.env.CC_UI_BASE || 'http://127.0.0.1:8787'
 const PORT = Number(process.env.CC_CDP_PORT || 9224)
 const TMP = join(ROOT, '_shots', '.verify-profile')
+const TMPDIR = join(ROOT, '_shots', '.verify-tmp')
+
+/**
+ * 生成一张真实 PNG（纯色块）。
+ * 手写而不是引依赖：IHDR + IDAT + IEND 三个块，crc32 用 node:zlib 现成的。
+ */
+function makeTestPng(width = 8, height = 8) {
+  const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(width, 0)
+  ihdr.writeUInt32BE(height, 4)
+  ihdr[8] = 8    // bit depth
+  ihdr[9] = 2    // color type: truecolor
+  const raw = Buffer.alloc(height * (1 + width * 3))
+  for (let y = 0; y < height; y++) {
+    const rowStart = y * (1 + width * 3)
+    raw[rowStart] = 0   // filter: none
+    for (let x = 0; x < width; x++) {
+      const p = rowStart + 1 + x * 3
+      // 做点渐变，避免整图纯色（顺带验证压缩不是空图）
+      raw[p] = (x * 255 / width) | 0
+      raw[p + 1] = (y * 255 / height) | 0
+      raw[p + 2] = 0x4c
+    }
+  }
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4)
+    len.writeUInt32BE(data.length, 0)
+    const typeBuf = Buffer.from(type, 'ascii')
+    const crcBuf = Buffer.alloc(4)
+    crcBuf.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])) >>> 0, 0)
+    return Buffer.concat([len, typeBuf, data, crcBuf])
+  }
+  return Buffer.concat([
+    sig,
+    chunk('IHDR', ihdr),
+    chunk('IDAT', deflateSync(raw)),
+    chunk('IEND', Buffer.alloc(0)),
+  ])
+}
 
 const CHROME_CANDIDATES = [
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -110,6 +151,7 @@ async function waitForCdp(url, timeoutMs = 20000) {
 }
 
 mkdirSync(join(ROOT, '_shots'), { recursive: true })
+mkdirSync(TMPDIR, { recursive: true })
 rmSync(TMP, { recursive: true, force: true })
 
 const child = spawn(chromePath, [
@@ -163,7 +205,8 @@ async function main() {
 
   const evalJs = async (expression) => {
     const r = await client.send('Runtime.evaluate', {
-      expression: `(() => { ${expression} })()`,
+      // 用 async IIFE：页面内求值允许 await（配合 awaitPromise 会等 Promise 结算）
+      expression: `(async () => { ${expression} })()`,
       returnByValue: true,
       awaitPromise: true,
     })
@@ -335,6 +378,63 @@ async function main() {
   assert(await waitFor('input'), '登录页渲染表单')
   assert(consoleErrors.length === 0, '登录页无控制台错误', consoleErrors.join(' | '))
 
+  group('图片上传（客户端压缩 → 上传 → 展示）')
+  // 现场注册一个用户拿到会话，才能进「写品吸笔记」页
+  const imgUser = `imgui${Date.now().toString().slice(-8)}`
+  const regRes = await fetch(`${BASE}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: imgUser, password: 'ImgUiPass12345' }),
+  })
+  const imgCookie = (regRes.headers.getSetCookie?.() || []).find((x) => x.startsWith('cc_sid='))
+  assert(regRes.status === 201 && !!imgCookie, `注册测试用户（${imgUser}）`, `HTTP ${regRes.status}`)
+
+  await client.send('Network.setCookie', {
+    name: 'cc_sid', value: imgCookie.split(';')[0].slice('cc_sid='.length), domain: '127.0.0.1', path: '/',
+  })
+
+  await goto('/reviews/new?cigarId=1')
+  assert(await waitFor('input[type="file"]'), '笔记表单渲染图片选择入口')
+
+  // 造一张真实 PNG 写到磁盘，再用 CDP 的 DOM.setFileInputFiles 注入 file input。
+  // 不能用 DataTransfer：Chrome 下程序化赋值会被丢弃（实测 input.files.length === 0），
+  // 那是浏览器安全限制，不是代码问题。
+  const pngPath = join(TMPDIR, 'verify-upload.png')
+  writeFileSync(pngPath, makeTestPng(800, 600))
+
+  await client.send('DOM.enable')
+  const doc = await client.send('DOM.getDocument', { depth: -1 })
+  const nodeRes = await client.send('DOM.querySelector', {
+    nodeId: doc.root.nodeId,
+    selector: 'input[type="file"]',
+  })
+  if (!nodeRes.nodeId) throw new Error('未找到文件选择输入框')
+  await client.send('DOM.setFileInputFiles', { files: [pngPath], nodeId: nodeRes.nodeId })
+  assert(true, `已注入测试图片（${(makeTestPng(800, 600).length / 1024).toFixed(1)}KB PNG）`)
+
+  // 等 canvas 压缩完成（800px 图压缩很快，给 3 秒余量）
+  const thumbAppeared = await (async () => {
+    const deadline = Date.now() + 6000
+    while (Date.now() < deadline) {
+      const n = await evalJs('return document.querySelectorAll(\'img[src^="data:image"]\').length')
+      if (n > 0) return n
+      await sleep(200)
+    }
+    return 0
+  })()
+  assert(thumbAppeared > 0, '选择图片后生成压缩预览缩略图', `找到 ${thumbAppeared} 张`)
+
+  const compressed = await evalJs(`
+    const img = document.querySelector('img[src^="data:image"]');
+    if (!img) return null;
+    const b64 = img.getAttribute('src').split(',')[1] || '';
+    return { dataUrlKb: Math.round(img.getAttribute('src').length / 1024), approxBytes: Math.round(b64.length * 0.75) };
+  `)
+  assert(compressed && compressed.approxBytes > 1000 && compressed.approxBytes < 2 * 1024 * 1024,
+    '压缩结果落在合理区间（1KB – 2MB）', JSON.stringify(compressed))
+
+  assert(consoleErrors.length === 0, '图片选择过程无控制台错误', consoleErrors.join(' | '))
+
   group('404 与 SPA 回退')
   await goto('/this-page-does-not-exist')
   const nfText = await text()
@@ -355,6 +455,7 @@ try {
 } finally {
   child.kill('SIGKILL')
   rmSync(TMP, { recursive: true, force: true })
+  rmSync(TMPDIR, { recursive: true, force: true })
 }
 
 console.log(`\n${c('1;36', '────────────────────────────────────')}`)

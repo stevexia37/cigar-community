@@ -74,6 +74,8 @@
 
           <p class="mt-3 line-clamp-3 whitespace-pre-line text-sm leading-relaxed text-cigar-mute">{{ r.content }}</p>
 
+          <ReviewImages :images="r.images || []" :max-thumb="4" />
+
           <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-cigar-light/40 pt-3">
             <router-link :to="'/cigars/' + r.cigarId" class="cc-chip">查看雪茄</router-link>
             <button
@@ -122,6 +124,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '@/api/client.js'
 import { useAuth } from '@/composables/useAuth.js'
 import EmptyState from '@/components/EmptyState.vue'
+import ReviewImages from '@/components/ReviewImages.vue'
 
 const route = useRoute()
 const router = useRouter()

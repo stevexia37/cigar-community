@@ -19,6 +19,7 @@ database/*.db-journal
 database/*.db-wal
 database/*.db-shm
 backups/
+uploads/
 logs/
 state/
 *.log

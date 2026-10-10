@@ -163,7 +163,8 @@ async function main() {
 
   const evalJs = async (expression) => {
     const r = await client.send('Runtime.evaluate', {
-      expression: `(() => { ${expression} })()`,
+      // 用 async IIFE：页面内求值允许 await（配合 awaitPromise 会等 Promise 结算）
+      expression: `(async () => { ${expression} })()`,
       returnByValue: true,
       awaitPromise: true,
     })

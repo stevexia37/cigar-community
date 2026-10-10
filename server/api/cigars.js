@@ -3,7 +3,7 @@ import { query, queryOne } from '../db/index.js'
 import { parsePagination, parseList, parseIntList, parseId, toFloat } from '../lib/query.js'
 import {
   buildCigarQuery, countCigars, flavorsByCigar, shapeCigar,
-  shapeReview, CATEGORY_LABELS, originKeyFromCode,
+  shapeReview, imagesByReview, CATEGORY_LABELS, originKeyFromCode,
 } from './shape.js'
 
 export const cigarRouter = new Router()
@@ -139,6 +139,8 @@ cigarRouter.get('/cigars/:id', async (req, res) => {
     for (const v of voted) helpfulSet.add(v.review_id)
   }
 
+  const reviewImageMap = imagesByReview(reviewRows.map((r) => r.id))
+
   const summary = queryOne(
     `SELECT COUNT(*) AS n,
             AVG(overall_rating) AS avg_overall,
@@ -176,7 +178,9 @@ cigarRouter.get('/cigars/:id', async (req, res) => {
 
   sendJson(res, 200, {
     cigar,
-    reviews: reviewRows.map((r) => shapeReview(r, req.user?.id ?? null, helpfulSet.has(r.id))),
+    reviews: reviewRows.map((r) => shapeReview(
+      r, req.user?.id ?? null, helpfulSet.has(r.id), reviewImageMap.get(r.id) || [],
+    )),
     related: relatedRows.map((r) => shapeCigar(r, relatedFlavors.get(r.id) || [])),
   })
 })
