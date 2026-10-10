@@ -898,6 +898,75 @@ TRAV_IMG="$(curl -sS --path-as-is -o /dev/null -w '%{http_code}' "$BASE/uploads/
 if [[ "$TRAV_IMG" == "404" || "$TRAV_IMG" == "400" ]]; then ok "上传目录拒绝路径穿越（$TRAV_IMG）"
 else bad "上传目录路径穿越" "返回 $TRAV_IMG"; fi
 
+# ---------------------------------------------------------------- 14 用户启停
+group "14 用户启停（管理端）：越权防护与「停用即踢下线」"
+
+# 先取管理员自己的 id：下面要验证「不能停用自己」
+ADMIN_ID="$(curl -sS -b "$JAR" "$BASE/api/auth/me" | jq -r '.user.id // empty')"
+if [[ -n "$ADMIN_ID" ]]; then ok "取到管理员 id（$ADMIN_ID）"
+else bad "取管理员 id" "无法验证「不能停用自己」这条防护"; fi
+
+# 造一个普通用户与他的会话
+DIS_USER="dis_$(date +%s)_$RANDOM"
+DIS_JAR="$(mktemp -t cc-dis.XXXXXX)"
+pass_age_gate "$DIS_JAR"
+curl -sS -c "$DIS_JAR" -b "$DIS_JAR" -X POST "$BASE/api/auth/register" \
+  -H 'content-type: application/json' \
+  -d "{\"username\":\"$DIS_USER\",\"password\":\"DisPass12345\"}" >/dev/null 2>&1
+
+request GET /api/auth/me
+# 该用户此刻应可用自己的会话读到自己的信息
+DIS_ME="$(curl -sS -b "$DIS_JAR" "$BASE/api/auth/me" | jq -r '.user.username // ""')"
+if [[ "$DIS_ME" == "$DIS_USER" ]]; then ok "普通用户会话可用（$DIS_USER）"
+else bad "准备普通用户会话" "me 返回 '$DIS_ME'"; fi
+
+DIS_ID="$(curl -sS -b "$JAR" "$BASE/api/admin/users?pageSize=200" \
+  | jq -r --arg u "$DIS_USER" '[(.items // [])[] | select(.username == $u)][0].id // empty')"
+if [[ -n "$DIS_ID" ]]; then ok "能在用户列表里找到该用户（id=$DIS_ID）"
+else bad "查找待停用用户" "列表里找不到 $DIS_USER"; fi
+
+# ① 不能停用自己
+request POST "/api/admin/users/$ADMIN_ID/status" '{"status":0}'
+expect_status "不能停用自己的账号" 400
+
+# ② 不能停用其它管理员
+request POST "/api/admin/users/1/status" '{"status":0}'
+expect_status "不能停用管理员账号" 400
+
+# ③ 停用普通用户
+request POST "/api/admin/users/$DIS_ID/status" '{"status":0}'
+expect_status "停用普通用户" 200
+expect_json   "返回停用后的状态" '.status' '0'
+
+# ④ 关键安全属性：停用必须立刻踢下线。
+# 否则被封用户仍能用旧会话继续写内容 —— 这一条此前没有断言覆盖。
+DIS_AFTER="$(curl -sS -o /dev/null -w '%{http_code}' -b "$DIS_JAR" "$BASE/api/auth/me")"
+if [[ "$DIS_AFTER" == "200" ]]; then
+  # /api/auth/me 对匿名也返回 200，所以要看 user 是否为 null
+  DIS_AFTER_USER="$(curl -sS -b "$DIS_JAR" "$BASE/api/auth/me" | jq -r '.user // "null"')"
+  if [[ "$DIS_AFTER_USER" == "null" ]]; then ok "停用后旧会话立即失效（user 变为 null）"
+  else bad "停用未踢下线" "旧会话仍能读到 $DIS_AFTER_USER —— 被封用户可继续操作"; fi
+else
+  ok "停用后旧会话被拒（HTTP $DIS_AFTER）"
+fi
+
+# ⑤ 停用后应无法写内容
+DIS_WRITE="$(curl -sS -o /dev/null -w '%{http_code}' -b "$DIS_JAR" -X POST "$BASE/api/reviews" \
+  -H 'content-type: application/json' \
+  -d '{"cigarId":1,"content":"被停用后不应还能写笔记的内容。","overallRating":7}')"
+if [[ "$DIS_WRITE" == "401" ]]; then ok "停用后无法写笔记（401）"
+else bad "停用后仍可写" "写笔记返回 HTTP $DIS_WRITE"; fi
+
+# ⑥ 恢复启用后该用户可重新登录
+curl -sS -b "$JAR" -X POST "$BASE/api/admin/users/$DIS_ID/status" \
+  -H 'content-type: application/json' -d '{"status":1}' >/dev/null 2>&1
+RELOGIN="$(curl -sS -o /dev/null -w '%{http_code}' -b "$JAR" -X POST "$BASE/api/auth/login" \
+  -H 'content-type: application/json' \
+  -d "{\"username\":\"$DIS_USER\",\"password\":\"DisPass12345\"}")"
+if [[ "$RELOGIN" == "200" ]]; then ok "重新启用后可登录（200）"
+else bad "启用后无法登录" "HTTP $RELOGIN"; fi
+rm -f "$DIS_JAR"
+
 # ---------------------------------------------------------------- 汇总
 printf '\n%s\n' "$(color '1;36' '────────────────────────────────')"
 printf '  通过 %s / 失败 %s\n' "$(color '32' "$PASS")" "$(color $([[ $FAIL -gt 0 ]] && echo '31' || echo '32') "$FAIL")"
