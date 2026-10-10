@@ -1,0 +1,79 @@
+# ============================================================================
+# 雪茄客 · Fly.io 部署配置
+#
+# 为什么给 Fly.io 单独准备一份：本项目的运行期依赖是
+# **SQLite 文件 + 本地文件系统（上传图片）**，这直接决定了平台选型 ——
+# 需要「一个常驻进程 + 一个可挂载的持久卷」，缺任一项就得改造成
+# 托管数据库 + 对象存储（见 docs/DEPLOYMENT.md §九 的平台对照表）。
+#
+# 首次部署：
+#   fly launch --no-deploy --copy-config     # 使用本文件，不再自动生成
+#   fly volumes create cigar_data --size 1   # 1GB 起步足够（库 + 图片）
+#   fly secrets set CC_SECRET=$(node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))")
+#   fly secrets set CC_ADMIN_PASSWORD='你的强口令'
+#   fly deploy
+#
+# 日常：
+#   fly logs / fly status / fly ssh console
+# ============================================================================
+
+app = "cigar-community"
+# ⚠️ 改成离你用户最近的区域。站点面向中文用户时，hkg（香港）通常比默认的
+# iad（美东）延迟低得多。可选区域：fly platform regions
+primary_region = "hkg"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  CC_ENV = "production"
+  CC_HOST = "0.0.0.0"
+  CC_PORT = "8787"
+  # 数据必须落在挂载卷上，否则每次部署都会丢库丢图
+  CC_DB_PATH = "/data/cigar.db"
+  CC_UPLOAD_DIR = "/data/uploads"
+  # Fly 前面有它自己的代理层，信任 XFF 才能拿到真实客户端 IP
+  # （用于限流与审计）。⚠️ 只在确实有可信代理时开启 ——
+  # 没有代理却信任 XFF，攻击者可伪造该头绕过限流（详见 docs/DEPLOYMENT.md）
+  CC_TRUST_PROXY = "1"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # ⚠️ 不要开启 auto_stop/auto_start。
+  # SQLite 是单写入者，机器休眠再唤醒会让首个请求承担冷启动延迟；
+  # 更关键的是本项目用 min_machines_running=1 明确表达「单实例常驻」的意图，
+  # 避免有人误以为可以横向扩容（多实例同时写 SQLite 会互相锁）。
+  auto_stop_machines = false
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    # 单实例 + SQLite，并发给太大没有意义，反而放大写锁争用
+    soft_limit = 100
+    hard_limit = 200
+
+# 持久卷：SQLite 库与上传图片都在 /data。
+# 卷必须先用 `fly volumes create cigar_data --size 1` 创建，名字要与 source 一致。
+[mounts]
+  source = "cigar_data"
+  destination = "/data"
+
+# 健康检查走应用自己的 /api/health（会真的查一次数据库），
+# 而不是只看端口是否监听 —— 端口开着不代表能服务。
+[checks]
+  [checks.health]
+    port = 8787
+    type = "http"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "15s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  # SQLite 单实例 + 零依赖 Node，512MB 足够；瓶颈在磁盘 I/O 而非内存
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

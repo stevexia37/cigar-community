@@ -312,38 +312,34 @@ docker inspect --format='{{.State.Health.Status}}' cigar-community
 **判断口径**：只要平台能给「一个常驻进程 + 一个可挂载的持久卷」，就能直接跑。
 缺任一项，就要改造成托管数据库 + 对象存储。
 
-### Fly.io 最小步骤
+### Fly.io 部署步骤
+
+仓库根目录已备好可用的 **`fly.toml`**（不是片段，是完整配置），
+`--copy-config` 会直接用它，不必再手工改：
 
 ```bash
-fly launch --no-deploy          # 生成 fly.toml
-fly volumes create cigar_data --size 1   # 1GB 足够起步
-```
-
-`fly.toml` 关键片段：
-
-```toml
-[env]
-  CC_ENV = "production"
-  CC_DB_PATH = "/data/cigar.db"
-  CC_UPLOAD_DIR = "/data/uploads"
-  CC_TRUST_PROXY = "1"          # Fly 前面有代理层
-
-[[mounts]]
-  source = "cigar_data"
-  destination = "/data"
-
-[http_service]
-  internal_port = 8787
-  force_https = true
-  # 单实例：SQLite 写入是单点，多实例会互相锁
-  min_machines_running = 1
-```
-
-```bash
+fly launch --no-deploy --copy-config     # 使用仓库里的 fly.toml
+fly volumes create cigar_data --size 1   # 1GB 起步足够（SQLite 库 + 上传图片）
 fly secrets set CC_SECRET=$(node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))")
 fly secrets set CC_ADMIN_PASSWORD='你的强口令'
 fly deploy
 ```
+
+> **`[mounts]` 是单括号，不是 `[[mounts]]`。** 数组写法在这里是无效配置
+> （已按两个实际项目的 `fly.toml` 核对）。这类错误在部署时才暴露，成本很高。
+
+`fly.toml` 里几个**决定成败**的字段，以及为什么这么设：
+
+| 字段 | 值 | 为什么 |
+|---|---|---|
+| `mounts.destination` | `/data` | 必须与 `CC_DB_PATH` / `CC_UPLOAD_DIR` 的父目录一致，否则容器重建丢库丢图 |
+| `http_service.internal_port` | `8787` | 必须等于 `CC_PORT`，不一致平台会探活失败并反复重启 |
+| `min_machines_running` | `1` | SQLite 单写入者，多实例会互相锁；也不要开 `auto_stop` 让机器休眠 |
+| `checks.health.path` | `/api/health` | 走应用接口（会真查一次数据库），而非只看端口 |
+| `CC_TRUST_PROXY` | `1` | 平台前面有代理层，不信任 XFF 时限流会把所有人算作同一个 IP |
+
+这些一致性由 `npm run preflight` 的「平台部署物」一组检查逐条验证（8 项），
+不需要登录 Fly.io 就能查出来。
 
 > **不要给这个服务配多个实例**。SQLite 是单写入者，多实例同时写会互相锁；
 > 真要横向扩容，先按 [ARCHITECTURE §七](ARCHITECTURE.md) 迁到 MySQL。

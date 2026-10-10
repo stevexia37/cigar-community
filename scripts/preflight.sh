@@ -344,6 +344,83 @@ else
   warn "未发现 CI 工作流" "建议配置 .github/workflows/ci.yml 自动跑测试"
 fi
 
+# ---------------------------------------------------------------- 平台部署物
+# fly.toml 这类文件最容易出的错不是语法，而是**跨文件不一致**：
+# 卷挂载点与 CC_DB_PATH 的目录对不上 → 容器起来发现库是空的；
+# internal_port 与 CC_PORT 对不上 → 平台探活失败，反复重启。
+# 本机没装 flyctl，无法真机部署验证，所以把这些一致性逐条钉死。
+grp "平台部署物（Fly.io）"
+
+if [[ -f "$ROOT_DIR/fly.toml" ]]; then
+  ok "fly.toml 存在"
+
+  tomlish() { grep -E "^[[:space:]]*$1[[:space:]]*=" "$ROOT_DIR/fly.toml" | head -1 | sed -E 's/.*=[[:space:]]*"?([^"#]*)"?.*/\1/' | tr -d ' '; }
+
+  FLY_PORT="$(tomlish internal_port)"
+  FLY_DB="$(tomlish CC_DB_PATH)"
+  FLY_UPLOADS="$(tomlish CC_UPLOAD_DIR)"
+  FLY_MOUNT_DEST="$(grep -A3 '^\[mounts\]' "$ROOT_DIR/fly.toml" | grep -E 'destination' | head -1 | sed -E 's/.*=[[:space:]]*"?([^"#]*)"?.*/\1/' | tr -d ' ')"
+
+  # ① 卷挂载点必须是库与图片所在目录的父目录
+  if [[ -n "$FLY_MOUNT_DEST" && -n "$FLY_DB" && "$FLY_DB" == "$FLY_MOUNT_DEST"/* ]]; then
+    ok "数据库路径（$FLY_DB）落在挂载卷（$FLY_MOUNT_DEST）内"
+  else
+    fail "数据库不在挂载卷内" "CC_DB_PATH=$FLY_DB，mounts.destination=$FLY_MOUNT_DEST —— 容器重建会丢库"
+  fi
+  if [[ -n "$FLY_MOUNT_DEST" && -n "$FLY_UPLOADS" && "$FLY_UPLOADS" == "$FLY_MOUNT_DEST"/* ]]; then
+    ok "上传目录（$FLY_UPLOADS）落在挂载卷内"
+  else
+    fail "上传目录不在挂载卷内" "CC_UPLOAD_DIR=$FLY_UPLOADS，mounts.destination=$FLY_MOUNT_DEST"
+  fi
+
+  # ② 平台探活端口必须与进程监听端口一致
+  if [[ -n "$FLY_PORT" ]]; then
+    if [[ "$(tomlish CC_PORT)" == "$FLY_PORT" ]]; then
+      ok "http_service.internal_port 与 CC_PORT 一致（$FLY_PORT）"
+    else
+      fail "端口不一致" "internal_port=$FLY_PORT，CC_PORT=$(tomlish CC_PORT) —— 平台会探活失败并反复重启"
+    fi
+  else
+    fail "fly.toml 缺少 internal_port" "平台无法路由到应用"
+  fi
+
+  # ③ 健康检查路径必须在实现里真实存在
+  FLY_CHECK_PATH="$(grep -A8 '^\[checks\]' "$ROOT_DIR/fly.toml" | grep -E 'path' | head -1 | sed -E 's/.*=[[:space:]]*"?([^"#]*)"?.*/\1/' | tr -d ' ')"
+  if [[ -n "$FLY_CHECK_PATH" ]]; then
+    # 路由在各 router 里写的是不带 /api 前缀的路径（前缀由 index.js 的 mount 加），
+    # 所以要去掉 /api 再查 —— 直接搜 '/api/health' 会误报「不存在」（踩过）
+    CHECK_BARE="${FLY_CHECK_PATH#/api}"
+    if grep -rqF "'$CHECK_BARE'" "$ROOT_DIR/server/api/" 2>/dev/null; then
+      ok "健康检查路径真实存在（$FLY_CHECK_PATH）"
+    else
+      fail "健康检查路径不存在" "$FLY_CHECK_PATH 在服务端路由里找不到 —— 容器会一直被判定为不健康"
+    fi
+  else
+    fail "缺少健康检查" "应探测 /api/health，端口可监听不代表能服务"
+  fi
+
+  # ④ SQLite 是单写入者：不得开自动休眠、不得只跑 0 个实例
+  if grep -qE 'min_machines_running[[:space:]]*=[[:space:]]*0' "$ROOT_DIR/fly.toml"; then
+    fail "min_machines_running=0" "SQLite 单写入者，机器休眠会让首个请求承担冷启动；且易被误认为可横向扩容"
+  else
+    ok "min_machines_running 不为 0（单实例常驻）"
+  fi
+  if grep -qE 'auto_stop_machines[[:space:]]*=[[:space:]]*true' "$ROOT_DIR/fly.toml"; then
+    warn "开启了 auto_stop_machines" "SQLite 场景建议常驻，避免冷启动与写锁竞争"
+  else
+    ok "未开启自动休眠"
+  fi
+
+  # ⑤ 生产环境必须信任代理（否则限流拿到的是代理 IP，等于所有人共用一个桶）
+  if [[ "$(tomlish CC_TRUST_PROXY)" == "1" ]]; then
+    ok "CC_TRUST_PROXY=1（平台有代理层，需信任 XFF 才能拿到真实 IP）"
+  else
+    warn "未设置 CC_TRUST_PROXY=1" "平台前面有代理，不信任 XFF 时限流与审计会记成代理地址"
+  fi
+else
+  warn "未发现 fly.toml" "若不需要 Fly.io 部署可忽略（Dockerfile 仍可部署到任意容器平台）"
+fi
+
 # ---------------------------------------------------------------- 文档与实现一致
 # 「文档承诺了不存在的东西」是真实发生过的问题：deployment/checklist.md 里的
 # 示例命令写的是 `POST /api/posts`，而项目里根本没有这个接口（实测 404），

@@ -206,6 +206,12 @@ docker compose up -d
 云平台选型与限制见 [docs/DEPLOYMENT.md §九](docs/DEPLOYMENT.md) —— 简单说：
 **需要「常驻进程 + 可挂载持久卷」**，所以 Fly.io 可以，Cloudflare Workers 不行（无文件系统）。
 
+仓库里已备好可直接用的部署物：
+`Dockerfile`（多阶段、非 root、零生产依赖）、`docker-compose.yml`、
+`fly.toml`（Fly.io，含健康检查与持久卷配置）、`.github/workflows/ci.yml`。
+部署物之间的一致性由 `npm run preflight` 自动核对（挂载点 vs `CC_DB_PATH`、
+探活端口 vs `CC_PORT`、健康检查路径是否存在等）。
+
 **手动单机部署（最简单，无容器）**：
 
 ```bash
