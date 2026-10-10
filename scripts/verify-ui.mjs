@@ -25,6 +25,9 @@ import { fileURLToPath } from 'node:url'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const BASE = process.env.CC_UI_BASE || 'http://127.0.0.1:8787'
 const PORT = Number(process.env.CC_CDP_PORT || 9224)
+// 清理测试账号时需要管理员会话（口令可用环境变量覆盖）
+const ADMIN_USER = process.env.CC_ADMIN_USER || 'admin'
+const ADMIN_PASS = process.env.CC_ADMIN_PASSWORD || 'admin12345'
 const TMP = join(ROOT, '_shots', '.verify-profile')
 const TMPDIR = join(ROOT, '_shots', '.verify-tmp')
 
@@ -163,6 +166,7 @@ const child = spawn(chromePath, [
 ], { stdio: 'ignore' })
 
 let exitCode = 0
+let uname2 = ''
 
 // 把服务端签发的年龄门 Cookie 换成"已通过"状态
 async function ageCookieValue() {
@@ -448,7 +452,47 @@ async function main() {
   await goto('/cigars/999999')
   assert(/未找到|不存在/.test(await text()), '不存在的雪茄显示友好错误（非白屏）')
 
+  // 收尾：停用本次注册的测试账号，避免长期跑测试污染开发库
+  // （停用会连带清除其会话；管理员账号不可被停用，所以只处理 user 角色）
+  await cleanupTestUsers([imgUser, uname2].filter(Boolean))
+
   client.close()
+}
+
+/** 用账号口令换会话 Cookie（本脚本内的清理需要管理员身份） */
+async function loginCookie(username, password) {
+  const res = await fetch(`${BASE}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  })
+  if (!res.ok) throw new Error(`登录失败：HTTP ${res.status}`)
+  const list = res.headers.getSetCookie?.() || []
+  const hit = list.find((x) => x.startsWith('cc_sid='))
+  if (!hit) throw new Error('登录响应未下发会话 Cookie')
+  return hit.split(';')[0].slice('cc_sid='.length)
+}
+
+/** 用管理员身份把测试账号停用 */
+async function cleanupTestUsers(usernames) {
+  if (!usernames.length) return
+  try {
+    const adminSid = await loginCookie(ADMIN_USER, ADMIN_PASS)
+    const list = await fetch(`${BASE}/api/admin/users?pageSize=100`, {
+      headers: { cookie: `cc_sid=${adminSid}` },
+    }).then((r) => r.json())
+    for (const u of list.items || []) {
+      if (!usernames.includes(u.username)) continue
+      const res = await fetch(`${BASE}/api/admin/users/${u.id}/status`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', cookie: `cc_sid=${adminSid}` },
+        body: JSON.stringify({ status: 0 }),
+      })
+      if (res.ok) console.log(`  ${c(90, `· 已停用测试账号 ${u.username}`)}`)
+    }
+  } catch (err) {
+    console.log(`  ${c(33, `· 清理测试账号失败（不影响结果）：${err.message}`)}`)
+  }
 }
 
 try {

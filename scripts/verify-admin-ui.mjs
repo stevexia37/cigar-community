@@ -274,7 +274,30 @@ async function main() {
   await goto('/')
   assert(!(await bodyText()).includes('管理后台'), '普通用户看不到「管理后台」入口')
 
+  // 收尾：停用本次注册的测试用户
+  await cleanupTestUser(uname, adminSid)
+
   client.close()
+}
+
+/** 用管理员会话停用测试用户 */
+async function cleanupTestUser(username, adminSid) {
+  if (!username || !adminSid) return
+  try {
+    const list = await fetch(`${BASE}/api/admin/users?pageSize=100`, {
+      headers: { cookie: `cc_sid=${adminSid}` },
+    }).then((r) => r.json())
+    const target = (list.items || []).find((u) => u.username === username)
+    if (!target) return
+    const res = await fetch(`${BASE}/api/admin/users/${target.id}/status`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: `cc_sid=${adminSid}` },
+      body: JSON.stringify({ status: 0 }),
+    })
+    if (res.ok) console.log(`  ${c(90, `· 已停用测试账号 ${username}`)}`)
+  } catch (err) {
+    console.log(`  ${c(33, `· 清理测试账号失败（不影响结果）：${err.message}`)}`)
+  }
 }
 
 try {
